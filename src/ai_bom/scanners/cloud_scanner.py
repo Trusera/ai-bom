@@ -168,7 +168,7 @@ class CloudScanner(BaseScanner):
 
         try:
             content = file_path.read_text(encoding="utf-8", errors="ignore")
-        except (OSError, UnicodeDecodeError) as e:
+        except (OSError, UnicodeDecodeError):
             # Silently skip files that can't be read
             return components
 
@@ -197,7 +197,9 @@ class CloudScanner(BaseScanner):
                     )
 
                     # Determine model name from metadata
-                    model_name = metadata.get("model_id", metadata.get("foundation_model", ""))
+                    model_name = metadata.get(
+                        "model_id", metadata.get("foundation_model", ""),
+                    )
 
                     # Create component
                     component = AIComponent(
@@ -442,7 +444,9 @@ class CloudScanner(BaseScanner):
             if "AWSTemplateFormatVersion" in content:
                 return True
 
-            if "AWS::" in content and ("Resources:" in content or '"Resources"' in content):
+            if "AWS::" in content and (
+                "Resources:" in content or '"Resources"' in content
+            ):
                 return True
 
             # Try parsing and checking structure
@@ -482,7 +486,9 @@ class CloudScanner(BaseScanner):
         # Models and endpoints could be various types
         if component_type in {ComponentType.model, ComponentType.endpoint}:
             # Check if model name suggests embedding
-            model_name = metadata.get("model_id", metadata.get("foundation_model", ""))
+            model_name = metadata.get(
+                "model_id", metadata.get("foundation_model", ""),
+            )
             if "embed" in model_name.lower():
                 return UsageType.embedding
 

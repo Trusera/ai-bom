@@ -2,10 +2,8 @@
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 
-import pytest
 from typer.testing import CliRunner
 
 from ai_bom import __version__
@@ -57,7 +55,9 @@ def test_scan_nonexistent_path():
 def test_scan_cyclonedx_format(tmp_path):
     demo_path = Path(__file__).parent.parent / "examples" / "demo-project"
     out_file = tmp_path / "out.cdx.json"
-    result = runner.invoke(app, ["scan", str(demo_path), "--format", "cyclonedx", "-o", str(out_file)])
+    result = runner.invoke(
+        app, ["scan", str(demo_path), "--format", "cyclonedx", "-o", str(out_file)],
+    )
     assert result.exit_code == 0
     assert out_file.exists()
     data = json.loads(out_file.read_text())
@@ -77,7 +77,10 @@ def test_scan_sarif_format(tmp_path):
 
 def test_scan_severity_filter():
     demo_path = Path(__file__).parent.parent / "examples" / "demo-project"
-    result = runner.invoke(app, ["scan", str(demo_path), "--severity", "critical", "--format", "cyclonedx"])
+    result = runner.invoke(
+        app,
+        ["scan", str(demo_path), "--severity", "critical", "--format", "cyclonedx"],
+    )
     assert result.exit_code == 0
     data = json.loads(result.output)
     # All remaining components should be critical severity (risk score >= 76)

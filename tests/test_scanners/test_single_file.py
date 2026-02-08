@@ -1,6 +1,5 @@
 """Tests for single-file scanning via iter_files()."""
 import os
-from pathlib import Path
 
 import pytest
 

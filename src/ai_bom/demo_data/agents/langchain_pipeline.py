@@ -1,8 +1,8 @@
 """LangChain pipeline with tool usage — triggers orchestration detection."""
-from langchain_openai import ChatOpenAI
 from langchain.agents import AgentExecutor, create_react_agent
-from langchain.tools import ShellTool
 from langchain.prompts import PromptTemplate
+from langchain.tools import ShellTool
+from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(model="gpt-4o")
 

@@ -1,4 +1,4 @@
-from crewai import Agent, Task, Crew
+from crewai import Agent, Crew
 from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(model="gpt-4", api_key="sk-demo1234567890abcdefghijklmnopqrstuvwxyz5678")

@@ -1,27 +1,27 @@
 from __future__ import annotations
 
-import time
-import tempfile
 import shutil
+import tempfile
+import time
 from pathlib import Path
 from typing import Optional
 
 import typer
-from rich.console import Console
-from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich.panel import Panel
-from rich.text import Text
 from rich import box
+from rich.console import Console
+from rich.panel import Panel
+from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.text import Text
 
 from ai_bom import __version__
 from ai_bom.models import ScanResult
-from ai_bom.scanners import get_all_scanners
 from ai_bom.reporters import get_reporter
+from ai_bom.scanners import get_all_scanners
 from ai_bom.utils.risk_scorer import score_component
 
 app = typer.Typer(
     name="ai-bom",
-    help="AI Bill of Materials — discover and inventory all AI/LLM components in your infrastructure.",
+    help="AI Bill of Materials — discover and inventory all AI/LLM components.",
     rich_markup_mode="markdown",
     no_args_is_help=True,
 )
@@ -58,12 +58,14 @@ def _clone_repo(url: str) -> Path:
     try:
         import git
     except ImportError:
-        console.print("[red]GitPython is not installed. Install it with: pip install gitpython[/red]")
+        console.print(
+            "[red]GitPython is not installed. Install it with: pip install gitpython[/red]"
+        )
         raise typer.Exit(1)
 
     try:
         tmp = Path(tempfile.mkdtemp(prefix="ai-bom-"))
-        console.print(f"[cyan]Cloning repository to temporary directory...[/cyan]")
+        console.print("[cyan]Cloning repository to temporary directory...[/cyan]")
         git.Repo.clone_from(url, str(tmp), depth=1)
         console.print(f"[green]Repository cloned to {tmp}[/green]")
         return tmp
@@ -142,7 +144,10 @@ def _filter_by_severity(
 
     filtered_count = original_count - len(result.components)
     if filtered_count > 0 and not quiet:
-        console.print(f"[dim]Filtered out {filtered_count} components below {severity_str.upper()} severity[/dim]")
+        console.print(
+            f"[dim]Filtered out {filtered_count} components"
+            f" below {severity_str.upper()} severity[/dim]"
+        )
 
     # Rebuild summary after filtering
     result.build_summary()
@@ -151,13 +156,29 @@ def _filter_by_severity(
 @app.command()
 def scan(
     target: str = typer.Argument(".", help="Path to scan (file, directory, or git URL)"),
-    format: str = typer.Option("table", "--format", "-f", help="Output format: table, cyclonedx, json, html, markdown, sarif"),
-    output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
-    deep: bool = typer.Option(False, "--deep", help="Enable deep scanning (reserved for future AST mode)"),
-    include_tests: bool = typer.Option(False, "--include-tests", help="Include test directories in scan"),
-    severity: Optional[str] = typer.Option(None, "--severity", "-s", help="Minimum severity to report: critical, high, medium, low"),
-    no_color: bool = typer.Option(False, "--no-color", help="Disable colored output"),
-    n8n_url: Optional[str] = typer.Option(None, "--n8n-url", help="n8n instance URL for live scanning"),
+    format: str = typer.Option(
+        "table", "--format", "-f",
+        help="Output format: table, cyclonedx, json, html, markdown, sarif",
+    ),
+    output: Optional[str] = typer.Option(
+        None, "--output", "-o", help="Output file path",
+    ),
+    deep: bool = typer.Option(
+        False, "--deep", help="Enable deep scanning (reserved for future AST mode)",
+    ),
+    include_tests: bool = typer.Option(
+        False, "--include-tests", help="Include test directories in scan",
+    ),
+    severity: Optional[str] = typer.Option(
+        None, "--severity", "-s",
+        help="Minimum severity: critical, high, medium, low",
+    ),
+    no_color: bool = typer.Option(
+        False, "--no-color", help="Disable colored output",
+    ),
+    n8n_url: Optional[str] = typer.Option(
+        None, "--n8n-url", help="n8n instance URL for live scanning",
+    ),
     n8n_api_key: Optional[str] = typer.Option(None, "--n8n-api-key", help="n8n API key"),
     n8n_local: bool = typer.Option(False, "--n8n-local", help="Scan local ~/.n8n/ directory"),
 ) -> None:
@@ -283,7 +304,9 @@ def scan(
             try:
                 shutil.rmtree(scan_path)
             except Exception as e:
-                console.print(f"[yellow]Warning: Failed to clean up temporary directory: {e}[/yellow]")
+                console.print(
+                    f"[yellow]Warning: Failed to clean up temp directory: {e}[/yellow]"
+                )
 
 
 @app.command()

@@ -12,8 +12,6 @@ from ai_bom.models import (
     AIComponent,
     ComponentType,
     N8nWorkflowInfo,
-    RiskAssessment,
-    Severity,
     SourceLocation,
     UsageType,
 )
@@ -82,7 +80,7 @@ class N8nScanner(BaseScanner):
 
                 components.extend(workflow_components)
 
-            except Exception as e:
+            except Exception:
                 # Log error but continue scanning other files
                 continue
 
@@ -349,7 +347,10 @@ class N8nScanner(BaseScanner):
                         # Add a component for the hardcoded key
                         location = SourceLocation(
                             file_path=str(file_path.resolve()),
-                            context_snippet=f"Workflow: {workflow_info.workflow_name}, Node: {node_name}",
+                            context_snippet=(
+                            f"Workflow: {workflow_info.workflow_name},"
+                            f" Node: {node_name}"
+                        ),
                         )
                         component = AIComponent(
                             name=f"{provider} API Key in HTTP Request",
@@ -372,13 +373,19 @@ class N8nScanner(BaseScanner):
 
             # Check code nodes for dangerous patterns
             if node_type == "n8n-nodes-base.code":
-                code_content = parameters.get("jsCode", "") or parameters.get("code", "")
+                code_content = (
+                    parameters.get("jsCode", "")
+                    or parameters.get("code", "")
+                )
                 if code_content:
                     for danger_pattern in dangerous_code_patterns:
                         if re.search(danger_pattern, code_content):
                             location = SourceLocation(
                                 file_path=str(file_path.resolve()),
-                                context_snippet=f"Workflow: {workflow_info.workflow_name}, Node: {node_name}",
+                                context_snippet=(
+                                    f"Workflow: {workflow_info.workflow_name},"
+                                    f" Node: {node_name}"
+                                ),
                             )
                             component = AIComponent(
                                 name=f"Dangerous Code: {node_name}",
@@ -432,7 +439,10 @@ class N8nScanner(BaseScanner):
         # Create location
         location = SourceLocation(
             file_path=str(file_path.resolve()),
-            context_snippet=f"Workflow: {workflow_info.workflow_name}, Node: {node_name}",
+            context_snippet=(
+                f"Workflow: {workflow_info.workflow_name},"
+                f" Node: {node_name}"
+            ),
         )
 
         # Create component
@@ -589,7 +599,9 @@ class N8nScanner(BaseScanner):
         return ""
 
     def _has_hardcoded_credentials(
-        self, parameters: dict[str, Any], credentials: dict[str, Any]
+        self,
+        parameters: dict[str, Any],
+        credentials: dict[str, Any],
     ) -> bool:
         """Check if node has hardcoded credentials in parameters.
 
@@ -753,7 +765,10 @@ class N8nScanner(BaseScanner):
                 conn_type = connected_node.get("type", "")
                 if ".toolCode" in conn_type or conn_type == "n8n-nodes-base.code":
                     has_code_tool = True
-                if ".toolHttpRequest" in conn_type or conn_type == "n8n-nodes-base.httpRequest":
+                if (
+                    ".toolHttpRequest" in conn_type
+                    or conn_type == "n8n-nodes-base.httpRequest"
+                ):
                     has_http_tool = True
 
             # Flag agent if it has both code and HTTP tools

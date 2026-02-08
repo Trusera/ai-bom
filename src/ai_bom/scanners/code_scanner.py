@@ -11,13 +11,11 @@ unpinned models, and hardcoded credentials.
 from __future__ import annotations
 
 import re
-import sys
 from pathlib import Path
 
 from ai_bom.config import (
     DEPRECATED_MODELS,
     KNOWN_AI_PACKAGES,
-    KNOWN_MODEL_PATTERNS,
     SCANNABLE_EXTENSIONS,
 )
 from ai_bom.detectors.endpoint_db import detect_api_key

@@ -1,5 +1,5 @@
 """Multi-agent CrewAI setup — triggers agent framework and multi-agent detection."""
-from crewai import Agent, Task, Crew
+from crewai import Agent, Crew, Task
 from langchain_openai import ChatOpenAI
 
 llm = ChatOpenAI(

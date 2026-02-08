@@ -1,6 +1,5 @@
 """Tests for risk scoring engine."""
-import pytest
-from ai_bom.models import AIComponent, ComponentType, UsageType, SourceLocation, Severity
+from ai_bom.models import AIComponent, ComponentType, Severity, SourceLocation
 from ai_bom.utils.risk_scorer import score_component
 
 
@@ -35,7 +34,9 @@ class TestScoreComponent:
         assert "shadow" in risk.factors[0].lower() or "declared" in risk.factors[0].lower()
 
     def test_multiple_flags_accumulate(self):
-        comp = _make_component(flags=["hardcoded_api_key", "shadow_ai", "internet_facing"])
+        comp = _make_component(
+            flags=["hardcoded_api_key", "shadow_ai", "internet_facing"],
+        )
         risk = score_component(comp)
         assert risk.score == 75  # 30 + 25 + 20
         assert risk.severity == Severity.high
@@ -50,7 +51,9 @@ class TestScoreComponent:
         assert risk.score == 100
 
     def test_critical_severity(self):
-        comp = _make_component(flags=["hardcoded_api_key", "shadow_ai", "internet_facing", "no_auth"])
+        comp = _make_component(flags=[
+            "hardcoded_api_key", "shadow_ai", "internet_facing", "no_auth",
+        ])
         risk = score_component(comp)
         assert risk.score >= 76
         assert risk.severity == Severity.critical
@@ -78,10 +81,21 @@ class TestScoreComponent:
 
     def test_severity_thresholds(self):
         # Low: 0-25
-        assert score_component(_make_component(flags=["unpinned_model"])).severity == Severity.low
+        result = score_component(_make_component(flags=["unpinned_model"]))
+        assert result.severity == Severity.low
         # Medium: 26-50
-        assert score_component(_make_component(flags=["hardcoded_api_key"])).severity == Severity.medium
+        result = score_component(
+            _make_component(flags=["hardcoded_api_key"]),
+        )
+        assert result.severity == Severity.medium
         # High: 51-75
-        assert score_component(_make_component(flags=["hardcoded_api_key", "shadow_ai"])).severity == Severity.high
+        result = score_component(
+            _make_component(flags=["hardcoded_api_key", "shadow_ai"]),
+        )
+        assert result.severity == Severity.high
         # Critical: 76-100
-        assert score_component(_make_component(flags=["hardcoded_api_key", "shadow_ai", "internet_facing", "no_auth"])).severity == Severity.critical
+        result = score_component(_make_component(flags=[
+            "hardcoded_api_key", "shadow_ai",
+            "internet_facing", "no_auth",
+        ]))
+        assert result.severity == Severity.critical

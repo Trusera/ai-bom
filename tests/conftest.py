@@ -1,12 +1,15 @@
 """Shared test fixtures for AI-BOM test suite."""
-import json
-import os
-import tempfile
 from pathlib import Path
+
 import pytest
+
 from ai_bom.models import (
-    AIComponent, ComponentType, UsageType, SourceLocation,
-    RiskAssessment, Severity, ScanResult, ScanSummary, N8nWorkflowInfo,
+    AIComponent,
+    ComponentType,
+    N8nWorkflowInfo,
+    ScanResult,
+    SourceLocation,
+    UsageType,
 )
 
 
@@ -24,7 +27,11 @@ def sample_component():
         type=ComponentType.llm_provider,
         provider="OpenAI",
         model_name="gpt-4o",
-        location=SourceLocation(file_path="app.py", line_number=5, context_snippet="from openai import OpenAI"),
+        location=SourceLocation(
+            file_path="app.py",
+            line_number=5,
+            context_snippet="from openai import OpenAI",
+        ),
         usage_type=UsageType.completion,
         source="code",
     )

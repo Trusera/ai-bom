@@ -1,7 +1,6 @@
 """Tests for n8n scanner."""
-import json
 import pytest
-from pathlib import Path
+
 from ai_bom.scanners.n8n_scanner import N8nScanner
 
 

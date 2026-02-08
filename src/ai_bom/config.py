@@ -5,7 +5,7 @@ This module contains all detection knowledge for identifying AI usage across var
 dimensions: packages, endpoints, models, API keys, containers, and risk factors.
 """
 
-from typing import Dict, List, Set, Tuple, FrozenSet
+from typing import Dict, FrozenSet, List, Set, Tuple
 
 # =============================================================================
 # KNOWN AI PACKAGES

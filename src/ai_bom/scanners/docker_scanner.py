@@ -208,7 +208,7 @@ class DockerScanner(BaseScanner):
                         components.append(component)
                         break
 
-        except (OSError, UnicodeDecodeError) as e:
+        except (OSError, UnicodeDecodeError):
             # Log error but continue scanning
             pass
 

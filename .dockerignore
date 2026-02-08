@@ -14,5 +14,6 @@ tests/
 .github/
 *.md
 !README.md
+demo-video/
 .idea/
 .vscode/

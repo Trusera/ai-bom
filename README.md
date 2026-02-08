@@ -258,7 +258,7 @@ git clone https://github.com/trusera/ai-bom.git
 cd ai-bom
 pip install -e ".[dev]"
 
-# Run tests (94 passing)
+# Run tests (124 passing)
 pytest tests/ -v
 
 # Run demo

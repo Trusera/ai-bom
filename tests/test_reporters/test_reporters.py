@@ -1,6 +1,6 @@
 """Tests for report output formats."""
 import json
-import pytest
+
 from ai_bom.reporters import get_reporter
 from ai_bom.reporters.cli_reporter import CLIReporter
 from ai_bom.reporters.cyclonedx import CycloneDXReporter
@@ -175,7 +175,11 @@ class TestSARIFReporter:
 
     def test_component_without_file_path(self):
         from ai_bom.models import (
-            AIComponent, ComponentType, UsageType, SourceLocation, ScanResult,
+            AIComponent,
+            ComponentType,
+            ScanResult,
+            SourceLocation,
+            UsageType,
         )
         comp = AIComponent(
             name="openai",
@@ -197,7 +201,11 @@ class TestSARIFReporter:
 
     def test_component_without_line_number(self):
         from ai_bom.models import (
-            AIComponent, ComponentType, UsageType, SourceLocation, ScanResult,
+            AIComponent,
+            ComponentType,
+            ScanResult,
+            SourceLocation,
+            UsageType,
         )
         comp = AIComponent(
             name="openai",
@@ -225,7 +233,8 @@ class TestSARIFReporter:
             if "locations" in result:
                 uri = result["locations"][0]["physicalLocation"]["artifactLocation"]["uri"]
                 assert not uri.startswith("/"), f"Path should be relative: {uri}"
-                assert result["locations"][0]["physicalLocation"]["artifactLocation"]["uriBaseId"] == "%SRCROOT%"
+                loc = result["locations"][0]["physicalLocation"]
+                assert loc["artifactLocation"]["uriBaseId"] == "%SRCROOT%"
 
     def test_write_to_file(self, multi_component_result, tmp_path):
         reporter = SARIFReporter()

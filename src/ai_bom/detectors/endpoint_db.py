@@ -67,9 +67,6 @@ def detect_api_key(text: str) -> list[tuple[str, str, str]]:
     """
     results: list[tuple[str, str, str]] = []
 
-    # Placeholder patterns to detect (but still report them)
-    placeholder_indicators = ["demo", "test", "example", "xxx", "your", "placeholder"]
-
     for pattern, provider in API_KEY_PATTERNS:
         for match in re.finditer(pattern, text):
             key = match.group(0)
@@ -79,11 +76,6 @@ def detect_api_key(text: str) -> list[tuple[str, str, str]]:
                 masked_key = key[:4] + "..." + key[-2:]
             else:
                 masked_key = key[:8] + "..." + key[-4:]
-
-            # Check if it's a placeholder (note: we still include it)
-            is_placeholder = any(
-                indicator in key.lower() for indicator in placeholder_indicators
-            )
 
             # Include all keys - even placeholders indicate AI usage
             results.append((masked_key, provider, pattern))

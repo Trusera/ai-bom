@@ -1,6 +1,8 @@
 """Tests for network scanner."""
-import pytest
 from pathlib import Path
+
+import pytest
+
 from ai_bom.scanners.network_scanner import NetworkScanner
 
 

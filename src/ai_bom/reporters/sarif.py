@@ -8,7 +8,6 @@ from ai_bom import __version__
 from ai_bom.models import AIComponent, ScanResult, Severity
 from ai_bom.reporters.base import BaseReporter
 
-
 # Map severity to SARIF level
 _SEVERITY_TO_LEVEL = {
     Severity.critical: "error",
@@ -118,7 +117,11 @@ class SARIFReporter(BaseReporter):
         ]
 
         sarif = {
-            "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/release-2.1/sarif-2.1/schema/sarif-schema-2.1.0.json",
+            "$schema": (
+                "https://raw.githubusercontent.com/oasis-tcs/"
+                "sarif-spec/release-2.1/sarif-2.1/schema/"
+                "sarif-schema-2.1.0.json"
+            ),
             "version": "2.1.0",
             "runs": [
                 {

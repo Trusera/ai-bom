@@ -7,7 +7,6 @@ Supports exact matches and prefix-based lookups for model identification.
 
 from __future__ import annotations
 
-
 # Comprehensive model registry mapping model name patterns to metadata
 MODEL_REGISTRY: dict[str, dict[str, str | bool]] = {
     # OpenAI Models

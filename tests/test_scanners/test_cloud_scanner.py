@@ -1,6 +1,7 @@
 """Tests for cloud scanner."""
+
 import pytest
-from pathlib import Path
+
 from ai_bom.scanners.cloud_scanner import CloudScanner
 
 
@@ -22,7 +23,11 @@ class TestCloudScanner:
     def test_detects_sagemaker(self, scanner, fixtures_dir):
         components = scanner.scan(fixtures_dir / "sample_terraform.tf")
         providers = [c.provider for c in components]
-        assert any("SageMaker" in p for p in providers) or any("AWS" in p for p in providers) or len(components) >= 2
+        assert (
+            any("SageMaker" in p for p in providers)
+            or any("AWS" in p for p in providers)
+            or len(components) >= 2
+        )
 
     def test_source_is_cloud(self, scanner, fixtures_dir):
         components = scanner.scan(fixtures_dir / "sample_terraform.tf")

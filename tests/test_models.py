@@ -1,9 +1,9 @@
 """Tests for Pydantic data models."""
-import json
-import pytest
 from ai_bom.models import (
-    AIComponent, ComponentType, UsageType, Severity,
-    SourceLocation, RiskAssessment, ScanResult, ScanSummary, N8nWorkflowInfo,
+    AIComponent,
+    ComponentType,
+    Severity,
+    SourceLocation,
 )
 
 

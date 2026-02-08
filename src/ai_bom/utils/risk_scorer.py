@@ -1,8 +1,7 @@
 """Risk scoring utilities for AI components."""
 
+from ai_bom.config import DEPRECATED_MODELS, RISK_WEIGHTS
 from ai_bom.models import AIComponent, RiskAssessment, Severity
-from ai_bom.config import RISK_WEIGHTS, DEPRECATED_MODELS
-
 
 # Human-readable descriptions for each risk flag
 FLAG_DESCRIPTIONS = {

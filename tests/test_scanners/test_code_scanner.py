@@ -1,6 +1,7 @@
 """Tests for code scanner."""
+
 import pytest
-from pathlib import Path
+
 from ai_bom.scanners.code_scanner import CodeScanner
 
 
@@ -27,13 +28,16 @@ class TestCodeScanner:
         req = tmp_path / "requirements.txt"
         req.write_text("openai>=1.0.0\n")
         components = scanner.scan(tmp_path)
-        names = [c.name for c in components]
         providers = [c.provider for c in components]
         assert any("OpenAI" in p for p in providers)
 
     def test_detects_hardcoded_api_key(self, scanner, tmp_path):
         f = tmp_path / "app.py"
-        f.write_text('from openai import OpenAI\nclient = OpenAI(api_key="sk-demo1234567890abcdefghijklmnopqrstuvwxyz1234")\n')
+        f.write_text(
+            'from openai import OpenAI\n'
+            'client = OpenAI(api_key='
+            '"sk-demo1234567890abcdefghijklmnopqrstuvwxyz1234")\n'
+        )
         components = scanner.scan(tmp_path)
         has_key_flag = any("hardcoded_api_key" in c.flags for c in components)
         assert has_key_flag
@@ -41,7 +45,9 @@ class TestCodeScanner:
     def test_detects_crewai(self, scanner, fixtures_dir):
         components = scanner.scan(fixtures_dir / "sample_crew.py")
         providers = [c.provider for c in components]
-        assert any("CrewAI" in p for p in providers) or any("crewai" in c.name.lower() for c in components)
+        assert any("CrewAI" in p for p in providers) or any(
+            "crewai" in c.name.lower() for c in components
+        )
 
     def test_detects_langchain(self, scanner, fixtures_dir):
         components = scanner.scan(fixtures_dir / "sample_langchain.py")
@@ -49,7 +55,6 @@ class TestCodeScanner:
 
     def test_detects_requirements(self, scanner, fixtures_dir):
         components = scanner.scan(fixtures_dir / "sample_requirements.txt")
-        providers = [c.provider for c in components]
         # Should find openai, langchain, crewai from requirements
         assert len(components) >= 2
 

@@ -12,7 +12,6 @@ import re
 from pathlib import Path
 from typing import Set, Tuple
 
-from ai_bom.config import KNOWN_AI_ENDPOINTS
 from ai_bom.detectors.endpoint_db import detect_api_key, match_endpoint
 from ai_bom.models import (
     AIComponent,
