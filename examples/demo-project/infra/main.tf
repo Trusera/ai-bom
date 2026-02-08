@@ -32,3 +32,48 @@ resource "aws_sagemaker_model" "llm_model" {
     model_data_url = "s3://my-bucket/models/fine-tuned-model.tar.gz"
   }
 }
+
+# Azure OpenAI Deployment
+resource "azurerm_cognitive_deployment" "gpt4o" {
+  name                 = "gpt-4o-global"
+  cognitive_account_id = azurerm_cognitive_account.openai.id
+  model_name           = "gpt-4o"
+
+  model {
+    format  = "OpenAI"
+    name    = "gpt-4o"
+    version = "2024-05-13"
+  }
+
+  sku {
+    name     = "GlobalStandard"
+    capacity = 50
+  }
+}
+
+# Google Vertex AI Reasoning Engine
+resource "google_vertex_ai_reasoning_engine" "support_agent" {
+  display_name = "ai-support-agent"
+  description  = "Customer support reasoning engine powered by Gemini"
+  project      = "my-gcp-project"
+  location     = "us-central1"
+}
+
+# AWS Bedrock Guardrail
+resource "aws_bedrock_guardrail" "content_safety" {
+  name        = "production-content-filter"
+  description = "Block harmful and sensitive content in AI responses"
+
+  content_policy_config {
+    filters_config {
+      type            = "HATE"
+      input_strength  = "HIGH"
+      output_strength = "HIGH"
+    }
+    filters_config {
+      type            = "VIOLENCE"
+      input_strength  = "HIGH"
+      output_strength = "HIGH"
+    }
+  }
+}

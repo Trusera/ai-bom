@@ -28,38 +28,108 @@ class CloudScanner(BaseScanner):
 
     # Terraform resource type to (provider, component_type) mapping
     TERRAFORM_AI_RESOURCES = {
+        # --- AWS Bedrock ---
         "aws_bedrockagent_agent": ("AWS Bedrock", ComponentType.agent_framework),
         "aws_bedrockagent_knowledge_base": ("AWS Bedrock", ComponentType.tool),
+        "aws_bedrock_custom_model": ("AWS Bedrock", ComponentType.model),
+        "aws_bedrock_provisioned_model_throughput": ("AWS Bedrock", ComponentType.endpoint),
+        "aws_bedrock_guardrail": ("AWS Bedrock", ComponentType.tool),
+        "aws_bedrock_model_invocation_logging_configuration": ("AWS Bedrock", ComponentType.tool),
+        "aws_bedrockagent_agent_action_group": ("AWS Bedrock", ComponentType.tool),
+        "aws_bedrockagent_agent_alias": ("AWS Bedrock", ComponentType.agent_framework),
+        "aws_bedrockagent_data_source": ("AWS Bedrock", ComponentType.tool),
+        "aws_bedrockagent_flow": ("AWS Bedrock", ComponentType.workflow),
+        "aws_bedrockagent_prompt": ("AWS Bedrock", ComponentType.tool),
+        # --- AWS SageMaker ---
         "aws_sagemaker_endpoint": ("AWS SageMaker", ComponentType.endpoint),
         "aws_sagemaker_model": ("AWS SageMaker", ComponentType.model),
-        "aws_sagemaker_endpoint_configuration": (
-            "AWS SageMaker",
-            ComponentType.endpoint,
-        ),
+        "aws_sagemaker_endpoint_configuration": ("AWS SageMaker", ComponentType.endpoint),
+        "aws_sagemaker_notebook_instance": ("AWS SageMaker", ComponentType.tool),
+        "aws_sagemaker_domain": ("AWS SageMaker", ComponentType.container),
+        "aws_sagemaker_pipeline": ("AWS SageMaker", ComponentType.workflow),
+        "aws_sagemaker_feature_group": ("AWS SageMaker", ComponentType.tool),
+        "aws_sagemaker_space": ("AWS SageMaker", ComponentType.container),
+        "aws_sagemaker_app": ("AWS SageMaker", ComponentType.tool),
+        "aws_sagemaker_model_package_group": ("AWS SageMaker", ComponentType.model),
+        # --- AWS Comprehend ---
+        "aws_comprehend_document_classifier": ("AWS Comprehend", ComponentType.model),
+        "aws_comprehend_entity_recognizer": ("AWS Comprehend", ComponentType.model),
+        # --- AWS Kendra ---
+        "aws_kendra_index": ("AWS Kendra", ComponentType.tool),
+        # --- AWS Lex ---
+        "aws_lexv2models_bot": ("AWS Lex", ComponentType.agent_framework),
+        # --- AWS Rekognition ---
+        "aws_rekognition_project": ("AWS Rekognition", ComponentType.model),
+        # --- Google Vertex AI ---
         "google_vertex_ai_endpoint": ("Google Vertex AI", ComponentType.endpoint),
         "google_vertex_ai_featurestore": ("Google Vertex AI", ComponentType.tool),
         "google_vertex_ai_index": ("Google Vertex AI", ComponentType.tool),
         "google_vertex_ai_tensorboard": ("Google Vertex AI", ComponentType.tool),
+        "google_vertex_ai_dataset": ("Google Vertex AI", ComponentType.tool),
+        "google_vertex_ai_metadata_store": ("Google Vertex AI", ComponentType.tool),
+        "google_vertex_ai_deployment_resource_pool": ("Google Vertex AI", ComponentType.container),
+        "google_vertex_ai_index_endpoint": ("Google Vertex AI", ComponentType.endpoint),
+        "google_vertex_ai_feature_online_store": ("Google Vertex AI", ComponentType.tool),
+        "google_vertex_ai_reasoning_engine": ("Google Vertex AI", ComponentType.agent_framework),
+        "google_notebooks_instance": ("Google Vertex AI", ComponentType.tool),
+        "google_workbench_instance": ("Google Vertex AI", ComponentType.tool),
+        # --- Google ML Engine ---
         "google_ml_engine_model": ("Google ML Engine", ComponentType.model),
+        # --- Google Dialogflow CX ---
+        "google_dialogflow_cx_agent": ("Google Dialogflow CX", ComponentType.agent_framework),
+        # --- Google Discovery Engine ---
+        "google_discovery_engine_search_engine": (
+            "Google Discovery Engine",
+            ComponentType.endpoint,
+        ),
+        # --- Azure AI ---
         "azurerm_cognitive_account": ("Azure AI", ComponentType.llm_provider),
+        "azurerm_cognitive_deployment": ("Azure OpenAI", ComponentType.endpoint),
+        "azurerm_ai_services": ("Azure AI", ComponentType.llm_provider),
+        "azurerm_ai_foundry": ("Azure AI Foundry", ComponentType.tool),
+        "azurerm_ai_foundry_project": ("Azure AI Foundry", ComponentType.tool),
+        # --- Azure ML ---
         "azurerm_machine_learning_workspace": ("Azure ML", ComponentType.tool),
-        "azurerm_machine_learning_compute_cluster": (
-            "Azure ML",
-            ComponentType.container,
-        ),
-        "azurerm_machine_learning_compute_instance": (
-            "Azure ML",
-            ComponentType.container,
-        ),
+        "azurerm_machine_learning_compute_cluster": ("Azure ML", ComponentType.container),
+        "azurerm_machine_learning_compute_instance": ("Azure ML", ComponentType.container),
+        "azurerm_machine_learning_inference_cluster": ("Azure ML", ComponentType.endpoint),
+        "azurerm_machine_learning_synapse_spark": ("Azure ML", ComponentType.container),
+        "azurerm_machine_learning_datastore_blobstorage": ("Azure ML", ComponentType.tool),
     }
 
     # CloudFormation resource types to (provider, component_type) mapping
     CLOUDFORMATION_AI_RESOURCES = {
+        # --- Bedrock ---
         "AWS::Bedrock::Agent": ("AWS Bedrock", ComponentType.agent_framework),
         "AWS::Bedrock::KnowledgeBase": ("AWS Bedrock", ComponentType.tool),
+        "AWS::Bedrock::AgentAlias": ("AWS Bedrock", ComponentType.agent_framework),
+        "AWS::Bedrock::DataSource": ("AWS Bedrock", ComponentType.tool),
+        "AWS::Bedrock::Flow": ("AWS Bedrock", ComponentType.workflow),
+        "AWS::Bedrock::FlowAlias": ("AWS Bedrock", ComponentType.workflow),
+        "AWS::Bedrock::Guardrail": ("AWS Bedrock", ComponentType.tool),
+        "AWS::Bedrock::Prompt": ("AWS Bedrock", ComponentType.tool),
+        "AWS::Bedrock::ApplicationInferenceProfile": ("AWS Bedrock", ComponentType.endpoint),
+        # --- SageMaker ---
         "AWS::SageMaker::Endpoint": ("AWS SageMaker", ComponentType.endpoint),
         "AWS::SageMaker::Model": ("AWS SageMaker", ComponentType.model),
         "AWS::SageMaker::EndpointConfig": ("AWS SageMaker", ComponentType.endpoint),
+        "AWS::SageMaker::NotebookInstance": ("AWS SageMaker", ComponentType.tool),
+        "AWS::SageMaker::Domain": ("AWS SageMaker", ComponentType.container),
+        "AWS::SageMaker::Pipeline": ("AWS SageMaker", ComponentType.workflow),
+        "AWS::SageMaker::FeatureGroup": ("AWS SageMaker", ComponentType.tool),
+        "AWS::SageMaker::ModelPackage": ("AWS SageMaker", ComponentType.model),
+        "AWS::SageMaker::ModelPackageGroup": ("AWS SageMaker", ComponentType.model),
+        "AWS::SageMaker::InferenceComponent": ("AWS SageMaker", ComponentType.endpoint),
+        "AWS::SageMaker::Space": ("AWS SageMaker", ComponentType.container),
+        # --- Comprehend ---
+        "AWS::Comprehend::DocumentClassifier": ("AWS Comprehend", ComponentType.model),
+        "AWS::Comprehend::Flywheel": ("AWS Comprehend", ComponentType.workflow),
+        # --- Kendra ---
+        "AWS::Kendra::Index": ("AWS Kendra", ComponentType.tool),
+        # --- Lex ---
+        "AWS::Lex::Bot": ("AWS Lex", ComponentType.agent_framework),
+        # --- Rekognition ---
+        "AWS::Rekognition::Project": ("AWS Rekognition", ComponentType.model),
     }
 
     # Patterns for GPU instance types
@@ -292,6 +362,21 @@ class CloudScanner(BaseScanner):
         if endpoint_name_match:
             metadata["endpoint_name"] = endpoint_name_match.group(1)
 
+        # kind = "..." (common in GCP resources)
+        kind_match = re.search(r'kind\s*=\s*"([^"]+)"', block_text)
+        if kind_match:
+            metadata["kind"] = kind_match.group(1)
+
+        # display_name = "..." (common in Azure/GCP resources)
+        display_name_match = re.search(r'display_name\s*=\s*"([^"]+)"', block_text)
+        if display_name_match:
+            metadata["display_name"] = display_name_match.group(1)
+
+        # description = "..." (common across providers)
+        description_match = re.search(r'description\s*=\s*"([^"]+)"', block_text)
+        if description_match:
+            metadata["description"] = description_match.group(1)
+
         return metadata
 
     def _scan_cloudformation(self, file_path: Path) -> list[AIComponent]:
@@ -345,6 +430,10 @@ class CloudScanner(BaseScanner):
                         properties.get("ModelId", "")
                         or properties.get("ModelName", "")
                         or properties.get("FoundationModel", "")
+                        or properties.get("AgentName", "")
+                        or properties.get("FlowName", "")
+                        or properties.get("GuardrailName", "")
+                        or properties.get("PipelineName", "")
                     )
 
                     # Create metadata
@@ -494,6 +583,10 @@ class CloudScanner(BaseScanner):
 
             # Default to completion for LLM endpoints
             return UsageType.completion
+
+        # Workflows are used for orchestration
+        if component_type == ComponentType.workflow:
+            return UsageType.orchestration
 
         # Tools are used for tool_use
         if component_type == ComponentType.tool:

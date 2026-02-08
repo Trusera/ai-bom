@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Sample CloudFormation template with AI resources for testing
+
+Resources:
+  OrderProcessingFlow:
+    Type: AWS::Bedrock::Flow
+    Properties:
+      Name: order-processing-flow
+      Description: AI flow for processing customer orders
+      ExecutionRoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/BedrockFlowRole"
+
+  ContentGuardrail:
+    Type: AWS::Bedrock::Guardrail
+    Properties:
+      Name: content-safety
+      Description: Content filtering guardrail
+      BlockedInputMessaging: "Input blocked by guardrail"
+      BlockedOutputsMessaging: "Output blocked by guardrail"
+
+  TrainingPipeline:
+    Type: AWS::SageMaker::Pipeline
+    Properties:
+      PipelineName: model-training-pipeline
+      PipelineDescription: Automated model training pipeline
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/SageMakerRole"
+
+  SearchIndex:
+    Type: AWS::Kendra::Index
+    Properties:
+      Name: knowledge-base-index
+      Description: Enterprise knowledge base search index
+      Edition: ENTERPRISE_EDITION
+      RoleArn: !Sub "arn:aws:iam::${AWS::AccountId}:role/KendraRole"

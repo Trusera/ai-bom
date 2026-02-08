@@ -9,7 +9,8 @@
     <a href="#demo">Demo</a> &nbsp;|&nbsp;
     <a href="#output-formats">Output Formats</a> &nbsp;|&nbsp;
     <a href="#n8n-workflow-scanning-first-of-its-kind">n8n Scanning</a> &nbsp;|&nbsp;
-    <a href="#risk-scoring">Risk Scoring</a>
+    <a href="#risk-scoring">Risk Scoring</a> &nbsp;|&nbsp;
+    <a href="#scan-levels">Scan Levels</a>
   </p>
 
   <!-- badges -->
@@ -17,7 +18,7 @@
     <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" />
     <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python" />
     <img src="https://img.shields.io/badge/CycloneDX-1.6-green.svg" alt="CycloneDX" />
-    <img src="https://img.shields.io/badge/tests-124%20passing-brightgreen.svg" alt="Tests" />
+    <img src="https://img.shields.io/badge/tests-135%20passing-brightgreen.svg" alt="Tests" />
     <img src="https://img.shields.io/badge/PRs-welcome-orange.svg" alt="PRs Welcome" />
   </p>
 </div>
@@ -68,7 +69,7 @@ ai-bom scan . --format cyclonedx --output ai-bom.json
 | Model References | gpt-4o, claude-3-5-sonnet, gemini-1.5-pro, llama-3 | Code |
 | API Keys | OpenAI (sk-\*), Anthropic (sk-ant-\*), HuggingFace (hf\_\*) | Code, Network |
 | AI Containers | Ollama, vLLM, HuggingFace, NVIDIA, ChromaDB | Docker |
-| Cloud AI | AWS Bedrock, SageMaker, Vertex AI, Azure Cognitive | Cloud |
+| Cloud AI | AWS Bedrock, SageMaker, Comprehend, Kendra, Lex \| Azure OpenAI, AI Foundry, ML \| Google Vertex AI, Dialogflow CX | Cloud |
 | AI Endpoints | api.openai.com, api.anthropic.com, localhost:11434 | Network |
 | n8n AI Nodes | AI Agents, LLM Chat, MCP Client, Tools, Embeddings | n8n |
 | MCP Servers | Model Context Protocol connections | Code, n8n |
@@ -199,6 +200,33 @@ Every component receives a risk score (0–100):
 | Deprecated model | +10 | Using deprecated AI model |
 | Unpinned model | +5 | Model version not pinned |
 
+## Scan Levels
+
+ai-bom's detection depth depends on the permissions available at scan time. Each level progressively reveals more shadow AI:
+
+| Level | Access Required | What It Finds | Scanner |
+|-------|----------------|---------------|---------|
+| **Level 1 — File System** | Read-only file access | Source code imports, dependency files, config files, IaC definitions, n8n workflow JSON | Code, Cloud, n8n |
+| **Level 2 — Docker** | + Docker socket access | Running AI containers, GPU allocations, AI model images | Docker |
+| **Level 3 — Network** | + Network/env file access | API endpoints, hardcoded API keys, .env configurations | Network |
+| **Level 4 — Cloud IAM** | + Cloud provider credentials | Managed AI services (Bedrock, SageMaker, Vertex AI, Azure OpenAI) provisioned at infrastructure level | Cloud |
+
+### What each level requires
+
+**Level 1 (default)** — Works out of the box. Just point ai-bom at a directory or Git URL:
+```bash
+ai-bom scan .
+ai-bom scan https://github.com/org/repo.git
+```
+
+**Level 2** — Requires access to Docker socket or compose files in the scan path. No additional configuration needed if Dockerfiles/compose files are in the repo.
+
+**Level 3** — Scans `.env`, `.env.local`, `.env.production`, and config files (`.yaml`, `.json`, `.toml`, `.ini`). Detects both endpoint URLs and hardcoded API keys. For maximum coverage, ensure environment files are accessible (they're often gitignored).
+
+**Level 4** — Scans Terraform (`.tf`) and CloudFormation (`.yaml`, `.json`) files for cloud-provisioned AI services. Covers 60+ AWS, Azure, and GCP resource types. For live cloud inventory (not yet available), would require IAM read permissions.
+
+> **Tip:** For CI/CD pipelines, Level 1-3 are automatic. Level 4 requires IaC files in the repo (Terraform/CloudFormation). A future release will add live cloud API scanning with IAM credentials.
+
 ## Comparison
 
 How does ai-bom compare to existing supply chain tools?
@@ -258,7 +286,7 @@ git clone https://github.com/trusera/ai-bom.git
 cd ai-bom
 pip install -e ".[dev]"
 
-# Run tests (124 passing)
+# Run tests (135 passing)
 pytest tests/ -v
 
 # Run demo
