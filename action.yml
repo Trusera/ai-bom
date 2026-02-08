@@ -52,7 +52,7 @@ runs:
 
     - name: Run ai-bom scan
       shell: bash
-      continue-on-error: true
+      continue-on-error: true  # Scan findings should not fail the workflow
       run: |
         ARGS="scan ${{ inputs.path }} --format ${{ inputs.format }} -o ${{ inputs.output }}"
         if [ -n "${{ inputs.severity }}" ]; then
