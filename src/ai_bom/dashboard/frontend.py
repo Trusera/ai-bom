@@ -33,6 +33,19 @@ _DASHBOARD_HTML = """\
     --orange: #d29922;
     --purple: #bc8cff;
   }
+  [data-theme="light"] {
+    --bg: #ffffff;
+    --bg-card: #f6f8fa;
+    --bg-hover: #eaeef2;
+    --border: #d0d7de;
+    --text: #1f2328;
+    --text-dim: #656d76;
+    --accent: #0969da;
+    --green: #1a7f37;
+    --red: #cf222e;
+    --orange: #9a6700;
+    --purple: #8250df;
+  }
   * { margin:0; padding:0; box-sizing:border-box; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
@@ -168,14 +181,50 @@ _DASHBOARD_HTML = """\
 
   /* Loading */
   .loading { text-align: center; padding: 40px; color: var(--text-dim); }
+
+  /* Theme toggle */
+  .theme-toggle {
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--text); cursor: pointer; font-size: 18px; padding: 4px 10px;
+    transition: background 0.15s;
+  }
+  .theme-toggle:hover { background: var(--bg-hover); }
+
+  /* Modal */
+  .modal-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.6); z-index: 1000; display: flex;
+    align-items: center; justify-content: center;
+  }
+  .modal {
+    background: var(--bg-card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; max-width: 600px; width: 90%;
+    max-height: 80vh; overflow-y: auto; position: relative;
+  }
+  .modal h3 { font-size: 18px; margin-bottom: 16px; }
+  .modal-close {
+    position: absolute; top: 12px; right: 16px; background: none;
+    border: none; color: var(--text-dim); font-size: 22px; cursor: pointer;
+  }
+  .modal-close:hover { color: var(--text); }
+  .modal-row { display: flex; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .modal-label { width: 140px; color: var(--text-dim); font-size: 13px; flex-shrink: 0; }
+  .modal-value { flex: 1; font-size: 14px; word-break: break-all; }
+
+  /* Export bar */
+  .export-bar { display: flex; gap: 8px; }
 </style>
 </head>
 <body>
 
 <div class="header">
   <h1><span>AI-BOM</span> Dashboard</h1>
-  <div class="version" id="app-version"></div>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="version" id="app-version"></div>
+    <button class="theme-toggle" id="theme-toggle" title="Toggle theme">&#9790;</button>
+  </div>
 </div>
+<div id="modal-container"></div>
 
 <div class="container">
   <!-- Scan list view -->
@@ -198,8 +247,14 @@ _DASHBOARD_HTML = """\
 
   <!-- Scan detail view -->
   <div id="view-detail" class="hidden">
-    <div class="breadcrumb"><a href="#" onclick="showList();return false">Scans</a> / <span id="detail-title"></span></div>
-    <div class="stats" id="detail-stats"></div>
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+      <div class="breadcrumb" style="margin-bottom:0"><a href="#" onclick="showList();return false">Scans</a> / <span id="detail-title"></span></div>
+      <div class="export-bar">
+        <button class="btn" onclick="exportCSV()">Export CSV</button>
+        <button class="btn" onclick="exportJSON()">Export JSON</button>
+      </div>
+    </div>
+    <div class="stats" id="detail-stats" style="margin-top:16px"></div>
     <div class="charts">
       <div class="card"><h2>Severity Distribution</h2><div class="chart-wrap"><canvas id="chart-severity"></canvas></div></div>
       <div class="card"><h2>Component Types</h2><div class="chart-wrap"><canvas id="chart-types"></canvas></div></div>
@@ -553,11 +608,13 @@ function renderComponents() {
     return;
   }
   let html = '<table><thead><tr><th>Name</th><th>Type</th><th>Provider</th><th>Version</th><th>Severity</th><th>Risk Score</th><th>File</th></tr></thead><tbody>';
-  comps.forEach(c => {
+  // Store filtered components for modal access
+  window._filteredComponents = comps;
+  comps.forEach((c, idx) => {
     const sev = (c.risk && c.risk.severity) || 'low';
     const score = (c.risk && c.risk.score) || 0;
     const filePath = (c.location && c.location.file_path) || '';
-    html += '<tr onclick="event.stopPropagation()">';
+    html += '<tr onclick="showComponentModal(' + idx + ')">';
     html += '<td><strong>' + esc(c.name) + '</strong></td>';
     html += '<td>' + esc((c.type||'').replace(/_/g,' ')) + '</td>';
     html += '<td>' + esc(c.provider||'-') + '</td>';
@@ -582,7 +639,107 @@ async function deleteScan() {
   showList();
 }
 
+// Theme toggle
+function initTheme() {
+  const saved = localStorage.getItem('ai-bom-theme');
+  if (saved === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+    document.getElementById('theme-toggle').innerHTML = '&#9728;';
+  }
+}
+document.getElementById('theme-toggle').addEventListener('click', function() {
+  const isLight = document.documentElement.getAttribute('data-theme') === 'light';
+  if (isLight) {
+    document.documentElement.removeAttribute('data-theme');
+    this.innerHTML = '&#9790;';
+    localStorage.setItem('ai-bom-theme', 'dark');
+  } else {
+    document.documentElement.setAttribute('data-theme', 'light');
+    this.innerHTML = '&#9728;';
+    localStorage.setItem('ai-bom-theme', 'light');
+  }
+});
+
+// Export functions
+function downloadBlob(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+function exportCSV() {
+  if (!currentScan || !currentScan.components) return;
+  const headers = ['Name','Type','Provider','Version','Severity','Risk Score','File Path','Flags','Source'];
+  const rows = currentScan.components.map(c => [
+    c.name || '',
+    (c.type || '').replace(/_/g,' '),
+    c.provider || '',
+    c.version || '',
+    (c.risk && c.risk.severity) || '',
+    (c.risk && c.risk.score) || 0,
+    (c.location && c.location.file_path) || '',
+    (c.flags || []).join('; '),
+    c.source || ''
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(v => '"' + String(v).replace(/"/g,'""') + '"').join(',')).join('\\n');
+  downloadBlob(csv, 'ai-bom-scan.csv', 'text/csv');
+}
+
+function exportJSON() {
+  if (!currentScan) return;
+  downloadBlob(JSON.stringify(currentScan, null, 2), 'ai-bom-scan.json', 'application/json');
+}
+
+// Component detail modal
+function showComponentModal(idx) {
+  const comps = window._filteredComponents || [];
+  const c = comps[idx];
+  if (!c) return;
+  const sev = (c.risk && c.risk.severity) || 'low';
+  const score = (c.risk && c.risk.score) || 0;
+  const filePath = (c.location && c.location.file_path) || '';
+  const line = (c.location && c.location.line_number) || '';
+  const flags = (c.flags || []).join(', ') || 'None';
+  const riskFactors = (c.risk && c.risk.factors) ? c.risk.factors.join(', ') : 'None';
+  const metadata = c.metadata ? Object.entries(c.metadata).map(([k,v]) => esc(k) + ': ' + esc(v)).join('<br>') : 'None';
+
+  const el = document.getElementById('modal-container');
+  el.innerHTML = '<div class="modal-overlay" onclick="closeModal(event)">' +
+    '<div class="modal" onclick="event.stopPropagation()">' +
+    '<button class="modal-close" onclick="closeModal()">&times;</button>' +
+    '<h3>' + esc(c.name) + '</h3>' +
+    modalRow('Type', (c.type || '').replace(/_/g, ' ')) +
+    modalRow('Provider', c.provider || '-') +
+    modalRow('Version', c.version || '-') +
+    modalRow('Severity', severityBadge(sev)) +
+    modalRow('Risk Score', score) +
+    modalRow('File Path', filePath || '-') +
+    (line ? modalRow('Line', line) : '') +
+    modalRow('Source', c.source || '-') +
+    modalRow('Flags', flags) +
+    modalRow('Risk Factors', riskFactors) +
+    modalRow('Metadata', metadata) +
+    '</div></div>';
+}
+
+function modalRow(label, value) {
+  return '<div class="modal-row"><div class="modal-label">' + esc(label) + '</div><div class="modal-value">' + (typeof value === 'string' && value.includes('<') ? value : esc(value)) + '</div></div>';
+}
+
+function closeModal(event) {
+  if (event && event.target && !event.target.classList.contains('modal-overlay')) return;
+  document.getElementById('modal-container').innerHTML = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') document.getElementById('modal-container').innerHTML = '';
+});
+
 // Init
+initTheme();
 showList();
 </script>
 </body>
