@@ -27,6 +27,11 @@
     <a href="#scan-levels">Scan Levels</a> &nbsp;|&nbsp;
     <a href="#dashboard">Dashboard</a>
   </p>
+
+  <br />
+  <img src="assets/n8n-demo.gif" alt="AI-BOM n8n Community Node Demo" width="720" />
+  <br />
+  <sub>Scan all your n8n AI workflows for security risks — directly inside n8n</sub>
 </div>
 
 ---
