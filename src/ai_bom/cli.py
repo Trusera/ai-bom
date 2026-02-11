@@ -303,6 +303,11 @@ def scan(
         "--cache/--no-cache",
         help="Enable incremental scanning cache",
     ),
+    max_file_size: int = typer.Option(
+        10,
+        "--max-file-size",
+        help="Maximum file size to scan in MB (default: 10). Increase for large model files (e.g. GGUFs).",
+    ),
 ) -> None:
     """Scan a directory or repository for AI/LLM components."""
     # Setup logging
@@ -380,8 +385,9 @@ def scan(
             result.components.extend(components)
         else:
             # --- File-system scanning ---
-            # Get all scanners
-            scanners = get_all_scanners()
+            # Get all scanners (convert MB CLI option to bytes)
+            max_file_size_bytes = max_file_size * 1024 * 1024
+            scanners = get_all_scanners(max_file_size=max_file_size_bytes)
 
             # Enable AST scanner if --deep flag is set
             if deep:
@@ -737,6 +743,7 @@ def demo() -> None:
         policy=None,
         workers=0,
         cache=False,
+        max_file_size=10,
     )
 
 

@@ -85,6 +85,10 @@ class BaseScanner(ABC):
     name: str = ""
     description: str = ""
 
+    #: Maximum file size in bytes to scan. Files larger than this are skipped.
+    #: Default is 10 MB. Override per-instance or pass to ``get_all_scanners()``.
+    max_file_size: int = 10_485_760  # 10 MB
+
     def __init_subclass__(cls, **kwargs: object) -> None:
         """Automatically register concrete scanner subclasses.
 
@@ -179,7 +183,7 @@ class BaseScanner(ABC):
         Automatically skips:
         - EXCLUDED_DIRS (node_modules, .git, __pycache__, etc.)
         - Test directories (test, tests, spec, specs) unless include_tests=True
-        - Files larger than 10MB (binary or generated files)
+        - Files larger than ``max_file_size`` (default 10 MB)
         - Binary files (containing null bytes in first 8KB)
         - .pyc compiled Python files
         - Symlinks that create cycles or point outside root
@@ -233,11 +237,11 @@ class BaseScanner(ABC):
             if root.suffix == ".pyc":
                 return
 
-            # Skip files larger than 10MB to avoid binary/generated files
+            # Skip files larger than max_file_size to avoid binary/generated files
             try:
                 file_size = os.path.getsize(root)
-                if file_size > 10_485_760:  # 10MB in bytes
-                    logger.warning("Skipping large file (>10MB): %s (%d bytes)", root, file_size)
+                if file_size > self.max_file_size:
+                    logger.warning("Skipping large file (>%dMB): %s (%d bytes)", self.max_file_size // (1024 * 1024), root, file_size)
                     return
             except OSError as e:
                 logger.warning("Cannot get size of %s: %s", root, e)
@@ -333,12 +337,13 @@ class BaseScanner(ABC):
                         logger.warning("Cannot resolve file %s: %s", file_path, e)
                         continue
 
-                    # Skip files larger than 10MB to avoid binary/generated files
+                    # Skip files larger than max_file_size to avoid binary/generated files
                     try:
                         file_size = os.path.getsize(file_path)
-                        if file_size > 10_485_760:  # 10MB in bytes
+                        if file_size > self.max_file_size:
                             logger.warning(
-                                "Skipping large file (>10MB): %s (%d bytes)",
+                                "Skipping large file (>%dMB): %s (%d bytes)",
+                                self.max_file_size // (1024 * 1024),
                                 file_path,
                                 file_size,
                             )
@@ -396,8 +401,13 @@ class BaseScanner(ABC):
             logger.warning("Permission denied walking directory %s: %s", root, e)
 
 
-def get_all_scanners() -> list[BaseScanner]:
+def get_all_scanners(*, max_file_size: int | None = None) -> list[BaseScanner]:
     """Instantiate and return all registered scanners.
+
+    Args:
+        max_file_size: Optional override for the maximum file size (in bytes)
+            that scanners will process.  Files larger than this are skipped.
+            When *None* the per-scanner default (10 MB) is used.
 
     Returns:
         List of scanner instances ready to use for scanning
@@ -406,4 +416,8 @@ def get_all_scanners() -> list[BaseScanner]:
         Scanner registration happens automatically when scanner
         modules are imported via __init_subclass__
     """
-    return [scanner_cls() for scanner_cls in _scanner_registry]
+    scanners = [scanner_cls() for scanner_cls in _scanner_registry]
+    if max_file_size is not None:
+        for s in scanners:
+            s.max_file_size = max_file_size
+    return scanners
