@@ -241,7 +241,11 @@ class BaseScanner(ABC):
             try:
                 file_size = os.path.getsize(root)
                 if file_size > self.max_file_size:
-                    logger.warning("Skipping large file (>%dMB): %s (%d bytes)", self.max_file_size // (1024 * 1024), root, file_size)
+                    max_mb = self.max_file_size // (1024 * 1024)
+                    logger.warning(
+                        "Skipping large file (>%dMB): %s (%d bytes)",
+                        max_mb, root, file_size,
+                    )
                     return
             except OSError as e:
                 logger.warning("Cannot get size of %s: %s", root, e)

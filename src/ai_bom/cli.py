@@ -306,7 +306,7 @@ def scan(
     max_file_size: int = typer.Option(
         10,
         "--max-file-size",
-        help="Maximum file size to scan in MB (default: 10). Increase for large model files (e.g. GGUFs).",
+        help="Max file size in MB (default: 10). Increase for large models.",
     ),
 ) -> None:
     """Scan a directory or repository for AI/LLM components."""
