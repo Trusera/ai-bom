@@ -71,20 +71,18 @@ jobs:
   # ──────────────────────────────────────────────
   # Job 4: Policy gate — fail on high severity
   # ──────────────────────────────────────────────
-  # Note: This job intentionally uses continue-on-error because the ai-bom
-  # repo itself contains demo/test API keys (sk-demo*) that trigger
-  # the high-severity gate. In your own repo, remove continue-on-error
-  # to enforce the policy gate as a hard failure.
+  # Scans only src/ to avoid demo/test API keys in examples/ and tests/.
+  # In your own repo, use path: "." to scan the full codebase.
   policy-gate:
     name: Security policy gate
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
       - name: Run AI-BOM scan with policy
         uses: trusera/ai-bom@main
         with:
+          path: "src"
           format: "table"
           fail-on: "high"
           scan-level: "deep"
