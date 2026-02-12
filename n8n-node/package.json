@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-trusera",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "n8n community node to scan workflows for AI security risks using Trusera AI-BOM",
   "keywords": [
     "n8n-community-node-package",
@@ -10,7 +10,7 @@
     "trusera",
     "workflow-security"
   ],
-  "license": "Apache-2.0",
+  "license": "MIT",
   "homepage": "https://trusera.dev",
   "author": {
     "name": "Trusera",
@@ -18,7 +18,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/trusera/ai-bom"
+    "url": "https://github.com/trusera/ai-bom",
+    "directory": "n8n-node"
   },
   "bugs": {
     "url": "https://github.com/trusera/ai-bom/issues"
@@ -45,6 +46,8 @@
   },
   "files": [
     "dist",
+    "credentials",
+    "nodes",
     "package.json",
     "LICENSE"
   ],
