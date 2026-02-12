@@ -227,6 +227,10 @@ async function trySessionRestore() {
   .btn-primary { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
   .btn-primary:hover { opacity: 0.9; }
   .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .charts-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+  .wf-row { cursor: pointer; }
+  .wf-row:hover { background: var(--bg-hover); }
+  .filter-count { color: var(--text-dim); font-size: 13px; margin-top: 4px; }
   .chart-wrap { max-height: 300px; display: flex; justify-content: center; }
   .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
   .filter-bar input, .filter-bar select {
@@ -299,7 +303,11 @@ async function trySessionRestore() {
   .hidden { display: none !important; }
   @media (max-width: 768px) {
     .charts { grid-template-columns: 1fr; }
+    .charts-3 { grid-template-columns: 1fr; }
     .stats { grid-template-columns: 1fr 1fr; }
+  }
+  @media (min-width: 769px) and (max-width: 1100px) {
+    .charts-3 { grid-template-columns: 1fr 1fr; }
   }
 </style>
 </head>
@@ -321,18 +329,27 @@ ${passwordFormHtml}
 
 <div class="container">
   <div class="stats" id="stat-cards"></div>
-  <div class="charts">
+  <div class="charts-3">
     <div class="card"><h2>Severity Distribution</h2><div class="chart-wrap"><canvas id="chart-severity"></canvas></div></div>
     <div class="card"><h2>Component Types</h2><div class="chart-wrap"><canvas id="chart-types"></canvas></div></div>
+    <div class="card"><h2>OWASP LLM Top 10</h2><div class="chart-wrap"><canvas id="chart-owasp"></canvas></div></div>
+  </div>
+  <div class="card" id="workflows-section">
+    <h2>Scanned Workflows</h2>
+    <div id="workflows-table"></div>
   </div>
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-wrap:wrap;gap:8px">
-      <h2 style="margin-bottom:0">Findings</h2>
+      <div>
+        <h2 style="margin-bottom:0">Findings</h2>
+        <div class="filter-count" id="filter-count"></div>
+      </div>
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
         <div class="filter-bar">
           <input type="text" id="filter-search" placeholder="Search components...">
           <select id="filter-severity"><option value="">All Severities</option><option value="critical">Critical</option><option value="high">High</option><option value="medium">Medium</option><option value="low">Low</option></select>
           <select id="filter-type"><option value="">All Types</option></select>
+          <select id="filter-workflow"><option value="">All Workflows</option></select>
         </div>
         <div class="export-bar">
           <button class="btn" onclick="exportCSV()">CSV</button>
@@ -363,7 +380,9 @@ function statCard(value, label, color) {
 
 var chartSeverity = null;
 var chartTypes = null;
+var chartOwasp = null;
 var filteredComponents = [];
+var activeWorkflowFilter = '';
 
 ${decryptionScript}
 
@@ -383,11 +402,14 @@ function renderDashboard() {
 
   renderCharts(data);
   populateTypeFilter(data);
+  populateWorkflowFilter(data);
+  renderWorkflowsTable(data);
   renderComponents(data);
 
   document.getElementById('filter-search').addEventListener('input', function() { renderComponents(data); });
   document.getElementById('filter-severity').addEventListener('change', function() { renderComponents(data); });
   document.getElementById('filter-type').addEventListener('change', function() { renderComponents(data); });
+  document.getElementById('filter-workflow').addEventListener('change', function() { renderComponents(data); });
 }
 
 function renderCharts(data) {
@@ -437,6 +459,42 @@ function renderCharts(data) {
       plugins: { legend: { display: false } }
     }
   });
+
+  // OWASP chart
+  if (chartOwasp) chartOwasp.destroy();
+  var owaspCounts = {};
+  (data.components || []).forEach(function(c) {
+    var cats = (c.risk && c.risk.owaspCategories) || [];
+    cats.forEach(function(cat) {
+      var code = cat.split(':')[0].trim();
+      owaspCounts[code] = (owaspCounts[code] || 0) + 1;
+    });
+  });
+  var owaspLabels = Object.keys(owaspCounts).sort();
+  var owaspValues = owaspLabels.map(function(l) { return owaspCounts[l]; });
+  var owaspColors = ['#f85149','#d29922','#58a6ff','#3fb950','#bc8cff','#f0883e','#a5d6ff','#7ee787','#d2a8ff','#ffa657'];
+  chartOwasp = new Chart(document.getElementById('chart-owasp').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: owaspLabels,
+      datasets: [{
+        label: 'Findings',
+        data: owaspValues,
+        backgroundColor: owaspLabels.map(function(l, i) { return owaspColors[i % owaspColors.length]; }),
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      indexAxis: 'y',
+      scales: {
+        x: { ticks: { color: '#8b949e', stepSize: 1 }, grid: { color: '#30363d' }, beginAtZero: true },
+        y: { ticks: { color: '#8b949e' }, grid: { color: '#30363d' } }
+      },
+      plugins: { legend: { display: false } }
+    }
+  });
 }
 
 function populateTypeFilter(data) {
@@ -451,18 +509,88 @@ function populateTypeFilter(data) {
   });
 }
 
+function populateWorkflowFilter(data) {
+  var sel = document.getElementById('filter-workflow');
+  sel.innerHTML = '<option value="">All Workflows</option>';
+  var wfNames = new Set((data.components || []).map(function(c) {
+    return (c.metadata && c.metadata.workflow_name) || (c.location && c.location.filePath) || '';
+  }));
+  wfNames.forEach(function(n) {
+    if (!n) return;
+    var opt = document.createElement('option');
+    opt.value = n;
+    opt.textContent = n;
+    sel.appendChild(opt);
+  });
+}
+
+function renderWorkflowsTable(data) {
+  var el = document.getElementById('workflows-table');
+  var comps = data.components || [];
+  var wfMap = {};
+  comps.forEach(function(c) {
+    var wfName = (c.metadata && c.metadata.workflow_name) || (c.location && c.location.filePath) || 'unknown';
+    if (!wfMap[wfName]) wfMap[wfName] = { name: wfName, trigger: (c.metadata && c.metadata.trigger_type) || '-', components: 0, highestScore: 0, highestSev: 'low' };
+    wfMap[wfName].components++;
+    var score = (c.risk && c.risk.score) || 0;
+    if (score > wfMap[wfName].highestScore) {
+      wfMap[wfName].highestScore = score;
+      wfMap[wfName].highestSev = (c.risk && c.risk.severity) || 'low';
+    }
+  });
+  var wfs = Object.values(wfMap);
+  wfs.sort(function(a, b) { return b.highestScore - a.highestScore; });
+  if (wfs.length === 0) {
+    el.innerHTML = '<p style="color:var(--text-dim);padding:10px">No workflows scanned.</p>';
+    return;
+  }
+  var html = '<table><thead><tr><th>Workflow</th><th>Trigger</th><th>AI Components</th><th>Highest Risk</th><th>Severity</th></tr></thead><tbody>';
+  wfs.forEach(function(wf) {
+    html += '<tr class="wf-row" onclick="filterByWorkflow(\'' + esc(wf.name).replace(/'/g,"\\'") + '\')">';
+    html += '<td><strong>' + esc(wf.name) + '</strong></td>';
+    html += '<td>' + esc(wf.trigger) + '</td>';
+    html += '<td>' + esc(wf.components) + '</td>';
+    html += '<td>' + esc(wf.highestScore) + '</td>';
+    html += '<td>' + severityBadge(wf.highestSev) + '</td>';
+    html += '</tr>';
+  });
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function filterByWorkflow(name) {
+  document.getElementById('filter-workflow').value = name;
+  var data = SCAN_DATA;
+  if (data) renderComponents(data);
+  document.getElementById('component-table').scrollIntoView({ behavior: 'smooth' });
+}
+
 function renderComponents(data) {
   var search = (document.getElementById('filter-search').value || '').toLowerCase();
   var sevFilter = document.getElementById('filter-severity').value;
   var typeFilter = document.getElementById('filter-type').value;
+  var wfFilter = document.getElementById('filter-workflow').value;
+  var totalComps = (data.components || []).length;
   var comps = (data.components || []).slice();
   if (search) comps = comps.filter(function(c) {
     return c.name.toLowerCase().indexOf(search) !== -1 || (c.provider||'').toLowerCase().indexOf(search) !== -1;
   });
   if (sevFilter) comps = comps.filter(function(c) { return c.risk && c.risk.severity === sevFilter; });
   if (typeFilter) comps = comps.filter(function(c) { return c.type === typeFilter; });
+  if (wfFilter) comps = comps.filter(function(c) {
+    var wfName = (c.metadata && c.metadata.workflow_name) || (c.location && c.location.filePath) || '';
+    return wfName === wfFilter;
+  });
   comps.sort(function(a, b) { return (b.risk ? b.risk.score : 0) - (a.risk ? a.risk.score : 0); });
   filteredComponents = comps;
+
+  // Filter counter
+  var countEl = document.getElementById('filter-count');
+  if (search || sevFilter || typeFilter || wfFilter) {
+    countEl.textContent = 'Showing ' + comps.length + ' of ' + totalComps + ' components';
+  } else {
+    countEl.textContent = totalComps + ' components';
+  }
 
   var el = document.getElementById('component-table');
   if (comps.length === 0) {
@@ -473,14 +601,14 @@ function renderComponents(data) {
   comps.forEach(function(c, idx) {
     var sev = (c.risk && c.risk.severity) || 'low';
     var score = (c.risk && c.risk.score) || 0;
-    var fp = (c.location && c.location.filePath) || '';
+    var wfName = (c.metadata && c.metadata.workflow_name) || (c.location && c.location.filePath) || '';
     html += '<tr onclick="showComponentModal(' + idx + ')">';
     html += '<td><strong>' + esc(c.name) + '</strong></td>';
     html += '<td>' + esc((c.type||'').replace(/_/g,' ')) + '</td>';
     html += '<td>' + esc(c.provider||'-') + '</td>';
     html += '<td>' + severityBadge(sev) + '</td>';
     html += '<td>' + esc(score) + '</td>';
-    html += '<td title="' + esc(fp) + '">' + esc(fp) + '</td>';
+    html += '<td title="' + esc(wfName) + '">' + esc(wfName) + '</td>';
     html += '</tr>';
   });
   html += '</tbody></table>';

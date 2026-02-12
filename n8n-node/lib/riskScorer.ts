@@ -33,7 +33,10 @@ export function scoreComponent(component: AIComponent): RiskAssessment {
   const factors: string[] = [];
   const owaspSet = new Set<string>();
 
+  const seenFlags = new Set<string>();
   for (const flag of component.flags) {
+    if (seenFlags.has(flag)) continue;
+    seenFlags.add(flag);
     const weight = RISK_WEIGHTS[flag];
     if (weight !== undefined) {
       score += weight;
@@ -46,7 +49,12 @@ export function scoreComponent(component: AIComponent): RiskAssessment {
     }
   }
 
-  if (component.modelName && DEPRECATED_MODELS.has(component.modelName)) {
+  // Fallback: check deprecated model even if not in flags (backwards compat)
+  if (
+    component.modelName &&
+    DEPRECATED_MODELS.has(component.modelName) &&
+    !seenFlags.has('deprecated_model')
+  ) {
     const weight = RISK_WEIGHTS['deprecated_model'] || 0;
     if (weight > 0) {
       score += weight;

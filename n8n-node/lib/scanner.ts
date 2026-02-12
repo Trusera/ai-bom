@@ -265,7 +265,15 @@ const PLACEHOLDER_VALUES = new Set([
   'your_api_key', 'your-api-key', 'placeholder', 'example',
 ]);
 
-function hasHardcodedCredentials(parameters: Record<string, unknown>): boolean {
+interface CredentialDetection {
+  hasCredentials: boolean;
+  hasApiKey: boolean;
+}
+
+function detectHardcodedCredentials(parameters: Record<string, unknown>): CredentialDetection {
+  let hasCredentials = false;
+  let hasApiKey = false;
+
   for (const key of CREDENTIAL_KEYS) {
     const value = parameters[key];
     if (
@@ -273,12 +281,16 @@ function hasHardcodedCredentials(parameters: Record<string, unknown>): boolean {
       value.length > 5 &&
       !PLACEHOLDER_VALUES.has(value.toLowerCase())
     ) {
-      return true;
+      hasCredentials = true;
     }
   }
 
   const paramsStr = JSON.stringify(parameters);
-  return API_KEY_PATTERNS.some((p) => p.pattern.test(paramsStr));
+  if (API_KEY_PATTERNS.some((p) => p.pattern.test(paramsStr))) {
+    hasApiKey = true;
+  }
+
+  return { hasCredentials, hasApiKey };
 }
 
 // ---------------------------------------------------------------------------
@@ -336,8 +348,15 @@ function nodeToComponent(
     },
   });
 
-  if (hasHardcodedCredentials(parameters)) {
+  const credDetection = detectHardcodedCredentials(parameters);
+  if (credDetection.hasApiKey) {
+    component.flags.push('hardcoded_api_key');
+  } else if (credDetection.hasCredentials) {
     component.flags.push('hardcoded_credentials');
+  }
+
+  if (modelName && DEPRECATED_MODELS.has(modelName)) {
+    component.flags.push('deprecated_model');
   }
 
   if (compType === ComponentType.McpClient) {
@@ -377,7 +396,7 @@ function inspectBaseNodes(
               type: ComponentType.LlmProvider,
               provider,
               usageType: UsageType.Unknown,
-              flags: ['hardcoded_credentials'],
+              flags: ['hardcoded_api_key'],
               location: {
                 filePath,
                 contextSnippet: `Workflow: ${workflowInfo.workflowName}, Node: ${nodeName}`,
@@ -449,6 +468,29 @@ function hasInsecureWebhook(nodes: N8nNode[]): boolean {
   return false;
 }
 
+/** Get all node names that connect TO a given target node (incoming). */
+function getIncomingNodeNames(targetName: string, connections: Record<string, unknown>): string[] {
+  const sources: string[] = [];
+  for (const [sourceNode, connectionTypes] of Object.entries(connections)) {
+    if (typeof connectionTypes !== 'object' || connectionTypes === null) continue;
+    for (const connList of Object.values(connectionTypes as Record<string, unknown>)) {
+      if (!Array.isArray(connList)) continue;
+      for (const connGroup of connList) {
+        if (!Array.isArray(connGroup)) continue;
+        for (const conn of connGroup) {
+          if (typeof conn === 'object' && conn !== null) {
+            const target = (conn as Record<string, unknown>)['node'];
+            if (target === targetName) {
+              sources.push(sourceNode);
+            }
+          }
+        }
+      }
+    }
+  }
+  return sources;
+}
+
 function checkAgentToolRisks(
   nodes: N8nNode[],
   connections: Record<string, unknown>,
@@ -463,11 +505,15 @@ function checkAgentToolRisks(
     if (!isAgentNode(node.type ?? '')) continue;
     const nodeName = node.name ?? '';
 
-    const connectedNames = getAllConnectedNodes(nodeName, connections);
+    // Check both outgoing AND incoming connections
+    const outgoing = getAllConnectedNodes(nodeName, connections);
+    const incoming = getIncomingNodeNames(nodeName, connections);
+    const allConnected = [...new Set([...outgoing, ...incoming])];
+
     let hasCodeTool = false;
     let hasHttpTool = false;
 
-    for (const connectedName of connectedNames) {
+    for (const connectedName of allConnected) {
       const connectedNode = nodeMap.get(connectedName);
       if (!connectedNode) continue;
       const connType = connectedNode.type ?? '';
@@ -582,9 +628,19 @@ function hasErrorHandling(workflow: N8nWorkflowData): boolean {
   return false;
 }
 
+function hasAnyWebhook(nodes: N8nNode[]): boolean {
+  return nodes.some((node) => (node.type ?? '').toLowerCase().includes('webhook'));
+}
+
 function applyWorkflowRisks(workflow: N8nWorkflowData, components: AIComponent[]): void {
   const nodes = workflow.nodes ?? [];
   const connections = workflow.connections ?? {};
+
+  if (hasAnyWebhook(nodes)) {
+    for (const component of components) {
+      component.flags.push('internet_facing');
+    }
+  }
 
   if (hasInsecureWebhook(nodes)) {
     for (const component of components) {
