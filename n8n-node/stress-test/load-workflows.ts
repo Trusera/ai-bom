@@ -31,7 +31,6 @@ async function createWorkflow(workflow: (typeof ALL_WORKFLOWS)[number]): Promise
     nodes: workflow.nodes,
     connections: workflow.connections,
     settings: workflow.settings || {},
-    active: false,
   });
 
   const resp = await fetch(`${BASE_URL}/api/v1/workflows`, {
