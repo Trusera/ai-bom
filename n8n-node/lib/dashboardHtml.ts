@@ -546,7 +546,7 @@ function renderWorkflowsTable(data) {
   }
   var html = '<table><thead><tr><th>Workflow</th><th>Trigger</th><th>AI Components</th><th>Highest Risk</th><th>Severity</th></tr></thead><tbody>';
   wfs.forEach(function(wf) {
-    html += '<tr class="wf-row" onclick="filterByWorkflow(\'' + esc(wf.name).replace(/'/g,"\\'") + '\')">';
+    html += '<tr class="wf-row" data-wf="' + esc(wf.name) + '" onclick="filterByWorkflow(this.dataset.wf)">';
     html += '<td><strong>' + esc(wf.name) + '</strong></td>';
     html += '<td>' + esc(wf.trigger) + '</td>';
     html += '<td>' + esc(wf.components) + '</td>';
