@@ -6,7 +6,9 @@
 
   <!-- badges -->
   <p>
+    <a href="https://github.com/Trusera/ai-bom/stargazers"><img src="https://img.shields.io/github/stars/Trusera/ai-bom?style=social" alt="GitHub Stars" /></a>
     <a href="https://pypi.org/project/ai-bom/"><img src="https://img.shields.io/pypi/v/ai-bom.svg" alt="PyPI" /></a>
+    <a href="https://pypi.org/project/ai-bom/"><img src="https://img.shields.io/pypi/dm/ai-bom.svg" alt="PyPI Downloads" /></a>
     <a href="https://www.npmjs.com/package/n8n-nodes-trusera"><img src="https://img.shields.io/npm/v/n8n-nodes-trusera.svg" alt="npm" /></a>
     <img src="https://img.shields.io/badge/python-3.10%2B-blue.svg" alt="Python 3.10+" />
     <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License" />
