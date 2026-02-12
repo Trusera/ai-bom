@@ -1,0 +1,28 @@
+# Source files
+src/
+tests/
+*.test.ts
+
+# Config files
+tsconfig.json
+vitest.config.ts
+.eslintrc.json
+
+# CI/CD
+.github/
+
+# Development
+.gitignore
+.npmignore
+
+# Documentation (except README)
+docs/
+
+# IDE
+.vscode/
+.idea/
+
+# Misc
+*.log
+.DS_Store
+coverage/

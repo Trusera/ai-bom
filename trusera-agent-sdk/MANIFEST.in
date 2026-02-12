@@ -1,0 +1,5 @@
+include README.md
+include LICENSE
+include py.typed
+recursive-include trusera_sdk *.py
+recursive-include trusera_sdk py.typed

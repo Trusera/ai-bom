@@ -1,0 +1,67 @@
+trusera-sdk-js/
+├── Core Configuration
+│   ├── package.json                      - npm package configuration
+│   ├── tsconfig.json                     - TypeScript strict config (ES2022, NodeNext)
+│   ├── vitest.config.ts                  - Test runner configuration
+│   ├── .eslintrc.json                    - ESLint rules
+│   ├── .gitignore                        - Git ignore patterns
+│   └── .npmignore                        - npm publish ignore patterns
+│
+├── Source Code (src/)
+│   ├── index.ts                          - Main exports
+│   ├── client.ts                         - TruseraClient (batching, flushing, agent registration)
+│   ├── interceptor.ts                    - HTTP interceptor (fetch monkey-patch, policy enforcement)
+│   ├── events.ts                         - Event types, createEvent, validation
+│   └── integrations/
+│       └── langchain.ts                  - LangChain.js callback handler
+│
+├── Tests (tests/)
+│   ├── events.test.ts                    - Event creation/validation tests
+│   ├── client.test.ts                    - Client functionality tests
+│   ├── interceptor.test.ts               - HTTP interception tests (critical)
+│   └── langchain.test.ts                 - LangChain integration tests
+│
+├── Examples (examples/)
+│   ├── basic-usage.ts                    - Getting started with interceptor
+│   ├── langchain-integration.ts          - LangChain.js integration demo
+│   └── policy-enforcement.ts             - All enforcement modes demo
+│
+├── CI/CD (.github/workflows/)
+│   └── publish.yml                       - Build, test, publish to npm on tags
+│
+└── Documentation
+    ├── README.md                         - Comprehensive docs with API reference
+    ├── QUICKSTART.md                     - 5-minute getting started guide
+    ├── CONTRIBUTING.md                   - Contribution guidelines
+    ├── PROJECT_SUMMARY.md                - This project overview
+    ├── FILES.txt                         - File listing (this file)
+    └── LICENSE                           - Apache 2.0 license
+
+Key Features:
+• Transparent HTTP interception (globalThis.fetch monkey-patch)
+• Cedar policy enforcement (block/warn/log modes)
+• LangChain.js first-class integration
+• Zero runtime dependencies (uses native Node.js APIs)
+• Production-ready TypeScript with strict typing
+• Comprehensive test coverage with Vitest
+• Professional documentation and examples
+
+Lines of Code:
+• Source:     ~715 lines (5 files)
+• Tests:      ~500 lines (4 files)
+• Examples:   ~320 lines (3 files)
+• Docs:       ~750 lines (4 files)
+• Total:     ~2,285 lines
+
+Technology Stack:
+• TypeScript 5.3+ (strict mode)
+• Node.js 18+ (native fetch, crypto.randomUUID)
+• Vitest (testing)
+• ESLint (linting)
+• GitHub Actions (CI/CD)
+
+Package Info:
+• Name: trusera-sdk
+• Version: 0.1.0
+• License: Apache 2.0
+• Engines: Node.js >= 18.0.0
