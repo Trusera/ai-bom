@@ -1,5 +1,6 @@
 import type {
   IAuthenticateGeneric,
+  ICredentialTestRequest,
   ICredentialType,
   INodeProperties,
 } from 'n8n-workflow';
@@ -35,6 +36,14 @@ export class TruseraApi implements ICredentialType {
       headers: {
         'X-N8N-API-KEY': '={{$credentials.apiKey}}',
       },
+    },
+  };
+
+  test: ICredentialTestRequest = {
+    request: {
+      baseURL: '={{$credentials.baseUrl}}',
+      url: '/api/v1/workflows',
+      method: 'GET',
     },
   };
 }

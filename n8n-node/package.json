@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-trusera",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "n8n community node to scan workflows for AI security risks using Trusera AI-BOM",
   "keywords": [
     "n8n-community-node-package",
