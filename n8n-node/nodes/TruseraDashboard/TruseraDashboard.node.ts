@@ -5,6 +5,7 @@ import type {
   INodeTypeDescription,
 } from 'n8n-workflow';
 
+
 import { scanWorkflows } from '../../lib/scanner';
 import { generateDashboardHtml } from '../../lib/dashboardHtml';
 
@@ -74,6 +75,13 @@ export class TruseraDashboard implements INodeType {
     // Generate HTML dashboard
     const html = generateDashboardHtml(scanResult, password || undefined);
 
-    return [[{ json: { html } }]];
+    return [[{
+      json: {
+        html,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
+        statusCode: 200,
+        body: html,
+      },
+    }]];
   }
 }
