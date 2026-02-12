@@ -7,7 +7,7 @@ n8n community node package that scans your workflows for AI security risks using
 
 Drop a single node, activate, and visit `/webhook/trusera` to see a full interactive security dashboard of every AI component in your n8n instance.
 
-![Dashboard Screenshot](https://raw.githubusercontent.com/Trusera/ai-bom/main/n8n-node/docs/dashboard.png)
+![Demo](https://raw.githubusercontent.com/Trusera/ai-bom/main/n8n-node/docs/demo.gif)
 
 ## Installation
 
