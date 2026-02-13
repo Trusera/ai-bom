@@ -3,8 +3,6 @@
 ## Overview
 Complete Go SDK for monitoring AI agents with Trusera's Cedar-based policy engine.
 
-**Location**: `/home/elios/Desktop/Trusera/Trusera-opensource/trusera-sdk-go/`
-
 ## Key Features
 - Zero external dependencies (stdlib only)
 - HTTP client interception for monitoring outbound requests

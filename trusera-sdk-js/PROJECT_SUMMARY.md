@@ -363,7 +363,7 @@ Grand Total: ~2,285 lines
 
 1. **Initialize Git**:
    ```bash
-   cd /home/elios/Desktop/Trusera/Trusera-opensource/trusera-sdk-js
+   cd trusera-sdk-js
    git init
    git add .
    git commit -m "Initial commit: Trusera SDK v0.1.0"

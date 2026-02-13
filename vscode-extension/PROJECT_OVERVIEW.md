@@ -9,16 +9,10 @@ A complete, production-ready VS Code extension for the AI-BOM security scanner. 
 **Files Created**: 25 files
 **License**: Apache 2.0
 
-## Project Location
-
-```
-/home/elios/Desktop/Trusera/Trusera-opensource/vscode-extension/
-```
-
 ## Quick Start
 
 ```bash
-cd /home/elios/Desktop/Trusera/Trusera-opensource/vscode-extension
+cd vscode-extension
 
 # Run setup script
 ./setup.sh

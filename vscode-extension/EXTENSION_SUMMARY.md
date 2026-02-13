@@ -6,7 +6,6 @@ A complete VS Code extension for the AI-BOM security scanner that enables develo
 
 **Status**: Ready for development and testing
 **Version**: 0.1.0
-**Location**: `/home/elios/Desktop/Trusera/Trusera-opensource/vscode-extension/`
 
 ## What Was Created
 
@@ -247,7 +246,7 @@ Total: 22 files, ~3,000 lines of code/documentation
 ### 1. Install Dependencies
 
 ```bash
-cd /home/elios/Desktop/Trusera/Trusera-opensource/vscode-extension
+cd vscode-extension
 npm install
 ```
 
@@ -283,7 +282,7 @@ This generates JavaScript in the `out/` directory.
 
 1. Open the folder in VS Code:
    ```bash
-   code /home/elios/Desktop/Trusera/Trusera-opensource/vscode-extension
+   code vscode-extension
    ```
 
 2. Press F5 to launch Extension Development Host
