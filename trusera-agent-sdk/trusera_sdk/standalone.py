@@ -86,8 +86,7 @@ class StandaloneInterceptor:
         """
         if enforcement not in ("block", "warn", "log"):
             raise ValueError(
-                f"Invalid enforcement mode: {enforcement}. "
-                f"Must be 'block', 'warn', or 'log'"
+                f"Invalid enforcement mode: {enforcement}. Must be 'block', 'warn', or 'log'"
             )
 
         self.enforcement = enforcement
@@ -175,8 +174,8 @@ class StandaloneInterceptor:
                 self.log_file.parent.mkdir(parents=True, exist_ok=True)
 
                 # Append to JSONL file (one JSON object per line)
-                with open(self.log_file, 'a', encoding='utf-8') as f:
-                    f.write(json.dumps(event) + '\n')
+                with open(self.log_file, "a", encoding="utf-8") as f:
+                    f.write(json.dumps(event) + "\n")
 
                 self._event_count += 1
                 if self.debug:
@@ -412,9 +411,7 @@ class StandaloneInterceptor:
             request: httpx.Request,
             **kwargs: Any,
         ) -> httpx.Response:
-            original = self._original_async_send.__get__(
-                client_self, httpx.AsyncClient
-            )
+            original = self._original_async_send.__get__(client_self, httpx.AsyncClient)
             return await self._intercept_async_request(original, request, **kwargs)
 
         # Monkey-patch httpx
@@ -442,8 +439,7 @@ class StandaloneInterceptor:
 
         self._installed = False
         logger.info(
-            f"Trusera StandaloneInterceptor uninstalled "
-            f"({self._event_count} events logged)"
+            f"Trusera StandaloneInterceptor uninstalled ({self._event_count} events logged)"
         )
 
     def get_stats(self) -> dict[str, Any]:

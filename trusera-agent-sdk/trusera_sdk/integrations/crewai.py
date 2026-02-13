@@ -1,7 +1,7 @@
 """CrewAI integration for Trusera."""
 
 import logging
-from typing import Any, Optional
+from typing import Any
 
 from ..client import TruseraClient
 from ..events import Event, EventType

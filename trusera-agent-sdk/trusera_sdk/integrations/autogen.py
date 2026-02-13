@@ -1,7 +1,7 @@
 """AutoGen integration for Trusera."""
 
 import logging
-from typing import Any, Callable, Optional
+from typing import Any, Callable
 
 from ..client import TruseraClient
 from ..events import Event, EventType
@@ -9,7 +9,7 @@ from ..events import Event, EventType
 logger = logging.getLogger(__name__)
 
 try:
-    import autogen
+    import autogen  # noqa: F401
 
     AUTOGEN_AVAILABLE = True
 except ImportError:
@@ -171,7 +171,8 @@ if AUTOGEN_AVAILABLE:
             """
             if hasattr(agent, "register_hook"):
                 agent.register_hook("process_message_before_send", self.message_hook)
-                logger.info(f"Registered Trusera hook for agent: {getattr(agent, 'name', 'unknown')}")
+                agent_name = getattr(agent, "name", "unknown")
+                logger.info(f"Registered Trusera hook for agent: {agent_name}")
             else:
                 logger.warning(f"Agent {getattr(agent, 'name', 'unknown')} does not support hooks")
 

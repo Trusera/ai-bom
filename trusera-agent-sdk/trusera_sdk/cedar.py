@@ -63,7 +63,7 @@ class EvaluationResult:
 # Matches: forbid ( principal, action == Action::"http", resource ) when { ... };
 RULE_PATTERN = re.compile(
     r'(forbid|permit)\s*\(\s*principal\s*,\s*action\s*==\s*Action::"(\w+)"\s*,\s*resource\s*\)'
-    r'\s*when\s*\{([^}]+)\}\s*;',
+    r"\s*when\s*\{([^}]+)\}\s*;",
     re.MULTILINE | re.DOTALL | re.IGNORECASE,
 )
 
@@ -87,7 +87,7 @@ def parse_policy(policy_text: str) -> list[PolicyRule]:
     """
     rules: list[PolicyRule] = []
     # Strip comments (// style)
-    cleaned = re.sub(r'//[^\n]*', '', policy_text)
+    cleaned = re.sub(r"//[^\n]*", "", policy_text)
 
     for match in RULE_PATTERN.finditer(cleaned):
         action_str = match.group(1).lower()
@@ -197,8 +197,7 @@ def evaluate_request(
             return EvaluationResult(
                 decision=PolicyDecision.DENY,
                 reason=(
-                    f"Forbidden by policy: request.{rule.field} "
-                    f"{rule.operator} \"{rule.value}\""
+                    f'Forbidden by policy: request.{rule.field} {rule.operator} "{rule.value}"'
                 ),
                 matched_rule=rule,
             )
@@ -214,7 +213,7 @@ def evaluate_request(
                 decision=PolicyDecision.ALLOW,
                 reason=(
                     f"Explicitly permitted by policy: request.{rule.field} "
-                    f"{rule.operator} \"{rule.value}\""
+                    f'{rule.operator} "{rule.value}"'
                 ),
                 matched_rule=rule,
             )
@@ -263,7 +262,7 @@ class CedarEvaluator:
         Raises:
             FileNotFoundError: If policy file doesn't exist
         """
-        with open(policy_path, encoding='utf-8') as f:
+        with open(policy_path, encoding="utf-8") as f:
             policy_text = f.read()
 
         rules = parse_policy(policy_text)
