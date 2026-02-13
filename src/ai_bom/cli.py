@@ -569,6 +569,15 @@ def scan(
             console.print(f"[red]Error generating report: {e}[/red]")
             raise typer.Exit(EXIT_ERROR) from None
 
+        # Print friendly call-to-action if scan was successful and not in quiet mode
+        if format == "table" and not quiet:
+            console.print()
+            star_msg = (
+                "✨ Found ai-bom useful? "
+                "Give us a star: https://github.com/Trusera/ai-bom ⭐"
+            )
+            console.print(f"[cyan]{star_msg}[/cyan]")
+
         # Save to dashboard database if requested
         if save_dashboard:
             _save_to_dashboard(result, end_time - start_time, quiet=quiet)
@@ -761,6 +770,15 @@ def scan_cloud(
     except Exception as exc:
         console.print(f"[red]Error generating report: {exc}[/red]")
         raise typer.Exit(EXIT_ERROR) from None
+
+    # Print friendly call-to-action if scan was successful and not in quiet mode
+    if format == "table" and not quiet:
+        console.print()
+        star_msg = (
+            "✨ Found ai-bom useful? "
+            "Give us a star: https://github.com/Trusera/ai-bom ⭐"
+        )
+        console.print(f"[cyan]{star_msg}[/cyan]")
 
 
 @app.command()

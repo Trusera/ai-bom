@@ -220,3 +220,31 @@ def test_no_color_env_var(monkeypatch):
     result = runner.invoke(app, ["scan", str(demo_path), "--format", "cyclonedx"])
     assert result.exit_code == 0
     # The console.no_color flag should be set when NO_COLOR is present
+
+
+def test_scan_star_message_in_table_format():
+    """Test that star message appears in table format."""
+    demo_file = Path(__file__).parent.parent / "examples" / "demo-project" / "app.py"
+    result = runner.invoke(app, ["scan", str(demo_file), "--format", "table"])
+    assert result.exit_code == 0
+    assert "Found ai-bom useful?" in result.output
+    assert "https://github.com/Trusera/ai-bom" in result.output
+
+
+def test_scan_no_star_message_in_quiet_mode():
+    """Test that star message does not appear in quiet mode."""
+    demo_file = Path(__file__).parent.parent / "examples" / "demo-project" / "app.py"
+    result = runner.invoke(app, ["scan", str(demo_file), "--quiet"])
+    assert result.exit_code == 0
+    # Quiet mode should suppress the star message
+    assert "Found ai-bom useful?" not in result.output or "https://github.com" not in result.output
+
+
+def test_scan_no_star_message_in_json_format():
+    """Test that star message does not appear in JSON format."""
+    demo_file = Path(__file__).parent.parent / "examples" / "demo-project" / "app.py"
+    result = runner.invoke(app, ["scan", str(demo_file), "--format", "json"])
+    assert result.exit_code == 0
+    # JSON format should only contain JSON output, not the star message
+    data = json.loads(result.output)
+    assert "bomFormat" in data  # Valid CycloneDX JSON
