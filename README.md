@@ -19,6 +19,11 @@
     <img src="https://img.shields.io/badge/coverage-81%25-brightgreen.svg" alt="Coverage" />
     <img src="https://img.shields.io/badge/PRs-welcome-orange.svg" alt="PRs Welcome" />
   </p>
+  <h2 align="center">🎬 Demo</h2>
+
+  <p align="center">
+    <img src="assets/demo.gif" alt="ai-bom demo" width="900"/>
+  </p>
 
   <p>
     <a href="#quick-start">Quick Start</a> &nbsp;|&nbsp;
