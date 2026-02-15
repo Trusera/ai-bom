@@ -462,8 +462,17 @@ def scan(
 
                 if format == "table" and not quiet:
                     console.print(f"[dim]Parallel scanning with {workers} workers[/dim]")
-
-                components = run_scanners_parallel(scanners, scan_path, workers=workers)
+                    with Progress(
+                        SpinnerColumn(),
+                        TextColumn("[progress.description]{task.description}"),
+                        console=console,
+                        transient=True,
+                    ) as progress:
+                        task = progress.add_task("Scanning...", total=None)
+                        components = run_scanners_parallel(scanners, scan_path, workers=workers)
+                        progress.update(task, completed=True)
+                else:
+                    components = run_scanners_parallel(scanners, scan_path, workers=workers)
                 for comp in components:
                     comp.risk = score_component(comp)
                 result.components.extend(components)
