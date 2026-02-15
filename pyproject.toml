@@ -70,7 +70,7 @@ server = [
     "uvicorn[standard]>=0.20.0,<1.0",
 ]
 watch = [
-    "watchdog>=3.0,<5.0",
+    "watchdog>=3.0,<7.0",
 ]
 aws = ["boto3>=1.26.0,<2.0"]
 gcp = ["google-cloud-aiplatform>=1.38.0,<2.0"]
