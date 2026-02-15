@@ -1,0 +1,116 @@
+# Trusera AI-BOM Scanner — GitLab CI Template
+#
+# Usage: Include this template in your .gitlab-ci.yml:
+#
+#   include:
+#     - remote: 'https://raw.githubusercontent.com/Trusera/ai-bom/main/.gitlab-ci-trusera.yml'
+#
+#   variables:
+#     TRUSERA_SCAN_TARGET: "."
+#     TRUSERA_SEVERITY_THRESHOLD: "high"
+#
+# Or copy this file into your repo and include locally:
+#
+#   include:
+#     - local: '.gitlab-ci-trusera.yml'
+
+stages:
+  - scan
+  - policy-gate
+
+variables:
+  TRUSERA_SCAN_TARGET:
+    value: "."
+    description: "Directory or path to scan"
+  TRUSERA_FORMAT:
+    value: "sarif"
+    description: "Output format (cyclonedx, sarif, spdx, table, html, markdown, csv, json)"
+  TRUSERA_SCAN_LEVEL:
+    value: "standard"
+    description: "Scan depth: quick, standard, or deep"
+  TRUSERA_SEVERITY_THRESHOLD:
+    value: ""
+    description: "Fail pipeline if severity >= threshold (critical, high, medium, low). Leave empty to skip."
+  TRUSERA_CEDAR_POLICY_FILE:
+    value: ""
+    description: "Path to Cedar policy file for policy gate evaluation. Leave empty to skip."
+  TRUSERA_CEDAR_ENTITIES_FILE:
+    value: ""
+    description: "Path to Cedar entities file for additional context (optional)"
+  TRUSERA_FAIL_ON_SEVERITY:
+    value: ""
+    description: "Cedar gate: only fail on violations at or above this severity (critical, high, medium, low)"
+
+trusera-scan:
+  stage: scan
+  image: python:3.12-slim
+  script:
+    - pip install --quiet ai-bom
+    - |
+      ARGS="scan ${TRUSERA_SCAN_TARGET} --format ${TRUSERA_FORMAT} --quiet"
+
+      if [ "${TRUSERA_SCAN_LEVEL}" = "deep" ]; then
+        ARGS="$ARGS --deep"
+      fi
+
+      if [ -n "${TRUSERA_SEVERITY_THRESHOLD}" ]; then
+        ARGS="$ARGS --fail-on ${TRUSERA_SEVERITY_THRESHOLD}"
+      fi
+
+      ARGS="$ARGS -o ai-bom-results.${TRUSERA_FORMAT}"
+      echo "Running: ai-bom $ARGS"
+      ai-bom $ARGS
+    # Also produce JSON output for policy gate if a policy file is configured
+    - |
+      if [ -n "${TRUSERA_CEDAR_POLICY_FILE}" ]; then
+        JSON_ARGS="scan ${TRUSERA_SCAN_TARGET} --format json --quiet -o ai-bom-policy-results.json"
+        if [ "${TRUSERA_SCAN_LEVEL}" = "deep" ]; then
+          JSON_ARGS="$JSON_ARGS --deep"
+        fi
+        ai-bom $JSON_ARGS
+      fi
+  artifacts:
+    paths:
+      - ai-bom-results.*
+      - ai-bom-policy-results.json
+    reports:
+      sast:
+        - ai-bom-results.sarif
+    when: always
+    expire_in: 30 days
+
+trusera-policy-gate:
+  stage: policy-gate
+  image: python:3.12-slim
+  needs:
+    - trusera-scan
+  rules:
+    - if: '$TRUSERA_CEDAR_POLICY_FILE != ""'
+  script:
+    - pip install --quiet ai-bom
+    - |
+      # Determine which JSON file to use for policy evaluation
+      if [ -f "ai-bom-policy-results.json" ]; then
+        RESULTS_FILE="ai-bom-policy-results.json"
+      elif [ -f "ai-bom-results.json" ]; then
+        RESULTS_FILE="ai-bom-results.json"
+      else
+        echo "Error: No JSON results found for policy evaluation"
+        exit 2
+      fi
+
+      echo "Evaluating Cedar policy: ${TRUSERA_CEDAR_POLICY_FILE}"
+
+      GATE_ARGS="${RESULTS_FILE} ${TRUSERA_CEDAR_POLICY_FILE}"
+
+      # Cedar-specific severity threshold (falls back to scan threshold if not set)
+      SEV="${TRUSERA_FAIL_ON_SEVERITY:-${TRUSERA_SEVERITY_THRESHOLD}}"
+      if [ -n "${SEV}" ]; then
+        GATE_ARGS="$GATE_ARGS --fail-on-severity ${SEV}"
+      fi
+
+      if [ -n "${TRUSERA_CEDAR_ENTITIES_FILE}" ]; then
+        GATE_ARGS="$GATE_ARGS --entities ${TRUSERA_CEDAR_ENTITIES_FILE}"
+      fi
+
+      python3 scripts/cedar-gate.py $GATE_ARGS
