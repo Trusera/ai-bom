@@ -49,6 +49,9 @@ That's it. Scans your project and prints a risk-scored inventory of every AI com
 # CycloneDX SBOM for compliance
 ai-bom scan . -f cyclonedx -o ai-bom.cdx.json
 
+# Validate JSON output against schema
+ai-bom scan . -f cyclonedx --validate
+
 # SARIF for GitHub Code Scanning
 ai-bom scan . -f sarif -o results.sarif
 
@@ -327,6 +330,15 @@ graph LR
 | SPDX 3.0 | `-f spdx3` | SPDX-compatible with AI extensions |
 | CSV | `-f csv` | Spreadsheet analysis |
 | JUnit | `-f junit` | CI/CD test reporting |
+
+## JSON Schema Validation
+
+AI-BOM provides a built-in JSON Schema for validating scan results, ensuring they conform to the expected structure (CycloneDX 1.6 + Trusera extensions).
+
+- **Schema file:** `src/ai_bom/schema/bom-schema.json`
+- **Validation command:** `ai-bom scan . --format cyclonedx --validate`
+
+This is particularly useful in CI/CD pipelines to ensure generated SBOMs are valid before ingestion into tools like Dependency-Track.
 
 <details>
 <summary>CycloneDX output example</summary>

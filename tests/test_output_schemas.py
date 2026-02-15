@@ -236,15 +236,16 @@ class TestCycloneDXSchemaValidation:
                     assert isinstance(prop["name"], str)
                     assert isinstance(prop["value"], str)
 
-    @pytest.mark.skipif(not JSONSCHEMA_AVAILABLE, reason="jsonschema not installed")
     def test_cyclonedx_schema_validation(self, multi_component_result):
         """Test that output validates against CycloneDX schema."""
+        from ai_bom.utils.validator import get_schema
         reporter = CycloneDXReporter()
         output = reporter.render(multi_component_result)
         parsed = json.loads(output)
 
         # Validate against schema
-        validator = Draft7Validator(CYCLONEDX_SCHEMA)
+        schema = get_schema()
+        validator = Draft7Validator(schema)
         errors = list(validator.iter_errors(parsed))
         assert len(errors) == 0, f"Schema validation errors: {errors}"
 

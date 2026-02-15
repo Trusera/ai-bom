@@ -248,3 +248,13 @@ def test_scan_no_star_message_in_json_format():
     # JSON format should only contain JSON output, not the star message
     data = json.loads(result.output)
     assert "bomFormat" in data  # Valid CycloneDX JSON
+
+
+def test_scan_validate_schema():
+    """Test that --validate flag works for JSON output."""
+    demo_file = Path(__file__).parent.parent / "examples" / "demo-project" / "app.py"
+    result = runner.invoke(app, ["scan", str(demo_file), "--format", "json", "--validate"])
+    assert result.exit_code == 0
+    # Output should still be valid JSON
+    data = json.loads(result.output)
+    assert "bomFormat" in data
