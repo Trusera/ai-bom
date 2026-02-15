@@ -25,6 +25,7 @@ from ai_bom.reporters import get_reporter
 from ai_bom.scanners import get_all_scanners
 from ai_bom.scanners.ast_scanner import ASTScanner
 from ai_bom.utils.risk_scorer import score_component
+from ai_bom.utils.validator import validate_output
 
 # Exit codes
 EXIT_ERROR = 2  # Operational errors (bad path, network failure, parse error, etc.)
@@ -345,6 +346,11 @@ def scan(
         "--max-file-size",
         help="Max file size in MB (default: 10). Increase for large models.",
     ),
+    validate_schema: bool = typer.Option(
+        False,
+        "--validate",
+        help="Validate JSON output against schema",
+    ),
     json_output: bool = typer.Option(
         False,
         "--json",
@@ -550,6 +556,17 @@ def scan(
         try:
             reporter = get_reporter(format)
             output_str = reporter.render(result)
+
+            # Validate schema if requested
+            if validate_schema and format in ["json", "cyclonedx"]:
+                try:
+                    data = json.loads(output_str)
+                    validate_output(data)
+                    if format == "table" and not quiet:
+                        console.print("[green]JSON Schema validation passed.[/green]")
+                except Exception as e:
+                    console.print(f"[red]Schema validation failed: {e}[/red]")
+                    raise typer.Exit(1) from None
 
             # Write to file if output specified
             if output:
