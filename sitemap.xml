@@ -2,66 +2,66 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://trusera.github.io/ai-bom/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/api/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/changelog/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/ci-integration/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/cli-reference/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/configuration/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/installation/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/interceptor-sdks/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/policy/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/quickstart/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/troubleshooting/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/compliance/eu-ai-act/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/compliance/owasp/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/outputs/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/scanners/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
     <url>
          <loc>https://trusera.github.io/ai-bom/scanners/n8n/</loc>
-         <lastmod>2026-02-14</lastmod>
+         <lastmod>2026-02-18</lastmod>
     </url>
 </urlset>
