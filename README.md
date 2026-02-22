@@ -1,4 +1,5 @@
 <div align="center">
+[![AI-BOM Scan](https://github.com/trusera/ai-bom/actions/workflows/ai-bom-scan.yml/badge.svg)](https://github.com/trusera/ai-bom/actions/workflows/ai-bom-scan.yml)
   <img src="https://raw.githubusercontent.com/Trusera/ai-bom/main/assets/logo.png" alt="AI-BOM Logo" width="120" />
   <br /><br />
   <h1>AI-BOM</h1>

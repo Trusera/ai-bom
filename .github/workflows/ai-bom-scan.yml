@@ -1,0 +1,153 @@
+name: AI-BOM Scan (PR)
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  ai-bom:
+    runs-on: ubuntu-latest
+
+    env:
+      AIBOM_JSON: aibom.json
+      SUMMARY_JSON: aibom-summary.json
+      RISK_THRESHOLD: "70"
+      ENFORCE_GATE: "false"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install AI-BOM
+        run: |
+          python -m pip install --upgrade pip
+          pip install ai-bom
+
+      - name: Run AI-BOM scan (AIBOM JSON)
+        run: |
+          ai-bom scan . --format aibom --output "${AIBOM_JSON}"
+
+      - name: Build summary (counts + pass/fail)
+        run: |
+          python - <<'PY'
+          import json, os, sys
+
+          aibom_path = os.environ["AIBOM_JSON"]
+          out_path = os.environ["SUMMARY_JSON"]
+          threshold = int(os.environ.get("RISK_THRESHOLD", "70"))
+          enforce = os.environ.get("ENFORCE_GATE", "false").lower() == "true"
+
+          def get_first(d, keys, default=None):
+            for k in keys:
+              if isinstance(d, dict) and k in d and d[k] is not None:
+                return d[k]
+            return default
+
+          with open(aibom_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+          components = (
+            get_first(data, ["components", "aiComponents"])
+            or get_first(get_first(data, ["results"], {}), ["components", "aiComponents"])
+            or []
+          )
+          if not isinstance(components, list):
+            components = []
+
+          risk_score = (
+            get_first(data, ["riskScore", "risk_score", "score"])
+            or get_first(get_first(data, ["summary"], {}), ["riskScore", "risk_score", "score"])
+          )
+
+          if isinstance(risk_score, (int, float)):
+            risk_score_val = float(risk_score)
+          else:
+            risk_score_val = 0.0
+            for c in components:
+              s = (
+                get_first(c, ["riskScore", "risk_score", "score"])
+                or get_first(get_first(c, ["risk"], {}), ["riskScore", "risk_score", "score"])
+              )
+              if isinstance(s, (int, float)):
+                risk_score_val = max(risk_score_val, float(s))
+
+          risky = 0
+          for c in components:
+            s = (
+              get_first(c, ["riskScore", "risk_score", "score"])
+              or get_first(get_first(c, ["risk"], {}), ["riskScore", "risk_score", "score"])
+            )
+            if isinstance(s, (int, float)) and float(s) >= threshold:
+              risky += 1
+
+          total = len(components)
+          status = "PASS" if (risk_score_val < threshold and risky == 0) else "FAIL"
+
+          summary = {
+            "status": status,
+            "risk_threshold": threshold,
+            "risk_score": round(risk_score_val, 2),
+            "components_found": total,
+            "risky_components": risky,
+            "enforced": enforce,
+          }
+
+          with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(summary, f, indent=2)
+
+          print(json.dumps(summary, indent=2))
+
+          if enforce and status == "FAIL":
+            sys.exit(2)
+          PY
+
+      - name: Upload AIBOM JSON artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ai-bom-results
+          path: |
+            ${{ env.AIBOM_JSON }}
+            ${{ env.SUMMARY_JSON }}
+
+      - name: Create PR comment body
+        id: comment
+        run: |
+          python - <<'PY'
+          import json, os
+
+          with open(os.environ["SUMMARY_JSON"], "r", encoding="utf-8") as f:
+            s = json.load(f)
+
+          status = s["status"]
+          emoji = "✅" if status == "PASS" else "❌"
+
+          body = f"""### {emoji} AI-BOM Scan Result: **{status}**
+
+          - **Components found:** {s["components_found"]}
+          - **Risk score:** {s["risk_score"]} (threshold: {s["risk_threshold"]})
+          - **Risky components (>= threshold):** {s["risky_components"]}
+
+          Artifact uploaded: `aibom.json`
+          """
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+            f.write("body<<EOF\n")
+            f.write(body)
+            f.write("\nEOF\n")
+          PY
+
+      - name: Post PR comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: ${{ steps.comment.outputs.body }}
+          edit-mode: replace
