@@ -14,101 +14,72 @@ jobs:
     env:
       AIBOM_JSON: aibom.json
       SUMMARY_JSON: aibom-summary.json
-      RISK_THRESHOLD: "70"
-      ENFORCE_GATE: "false"
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Use the official AI-BOM GitHub Action (faster than pip install)
+      - name: Run AI-BOM scan (AIBOM JSON)
+        id: scan
+        uses: trusera/ai-bom@v1
+        continue-on-error: true
+        with:
+          path: "."
+          format: "aibom"
+          output: "${{ env.AIBOM_JSON }}"
+          # Native policy gate (requested by reviewer)
+          fail-on: "high"
+
+      # Python only for building summary + PR comment
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-          cache: "pip"
 
-      - name: Install AI-BOM
-        run: |
-          python -m pip install --upgrade pip
-          pip install ai-bom
-
-      - name: Run AI-BOM scan (AIBOM JSON)
-        run: |
-          ai-bom scan . --format aibom --output "${AIBOM_JSON}"
-
-      - name: Build summary (counts + pass/fail)
+      - name: Build summary (pass/fail + counts)
         run: |
           python - <<'PY'
-          import json, os, sys
+          import json, os
 
           aibom_path = os.environ["AIBOM_JSON"]
           out_path = os.environ["SUMMARY_JSON"]
-          threshold = int(os.environ.get("RISK_THRESHOLD", "70"))
-          enforce = os.environ.get("ENFORCE_GATE", "false").lower() == "true"
+          scan_status = os.environ.get("SCAN_STATUS", "PASS")
 
-          def get_first(d, keys, default=None):
-            for k in keys:
-              if isinstance(d, dict) and k in d and d[k] is not None:
-                return d[k]
-            return default
+          components = []
 
-          with open(aibom_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
+          try:
+            with open(aibom_path, "r", encoding="utf-8") as f:
+              data = json.load(f)
 
-          components = (
-            get_first(data, ["components", "aiComponents"])
-            or get_first(get_first(data, ["results"], {}), ["components", "aiComponents"])
-            or []
-          )
-          if not isinstance(components, list):
+            # Best-effort component extraction across likely schemas
+            if isinstance(data, dict):
+              components = data.get("components") or data.get("aiComponents") or []
+              if not isinstance(components, list):
+                components = []
+              if not components and isinstance(data.get("results"), dict):
+                components = data["results"].get("components") or data["results"].get("aiComponents") or []
+                if not isinstance(components, list):
+                  components = []
+
+          except FileNotFoundError:
+            # Scan step may fail before producing output.
             components = []
 
-          risk_score = (
-            get_first(data, ["riskScore", "risk_score", "score"])
-            or get_first(get_first(data, ["summary"], {}), ["riskScore", "risk_score", "score"])
-          )
-
-          if isinstance(risk_score, (int, float)):
-            risk_score_val = float(risk_score)
-          else:
-            risk_score_val = 0.0
-            for c in components:
-              s = (
-                get_first(c, ["riskScore", "risk_score", "score"])
-                or get_first(get_first(c, ["risk"], {}), ["riskScore", "risk_score", "score"])
-              )
-              if isinstance(s, (int, float)):
-                risk_score_val = max(risk_score_val, float(s))
-
-          risky = 0
-          for c in components:
-            s = (
-              get_first(c, ["riskScore", "risk_score", "score"])
-              or get_first(get_first(c, ["risk"], {}), ["riskScore", "risk_score", "score"])
-            )
-            if isinstance(s, (int, float)) and float(s) >= threshold:
-              risky += 1
-
-          total = len(components)
-          status = "PASS" if (risk_score_val < threshold and risky == 0) else "FAIL"
-
           summary = {
-            "status": status,
-            "risk_threshold": threshold,
-            "risk_score": round(risk_score_val, 2),
-            "components_found": total,
-            "risky_components": risky,
-            "enforced": enforce,
+            "status": scan_status,
+            "components_found": len(components),
+            "policy_gate": "fail-on: high",
+            "artifact_generated": os.path.exists(aibom_path),
           }
 
           with open(out_path, "w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
           print(json.dumps(summary, indent=2))
-
-          if enforce and status == "FAIL":
-            sys.exit(2)
           PY
+        env:
+          SCAN_STATUS: ${{ steps.scan.outcome == 'success' && 'PASS' || 'FAIL' }}
 
       - name: Upload AIBOM JSON artifact
         uses: actions/upload-artifact@v4
@@ -117,6 +88,7 @@ jobs:
           path: |
             ${{ env.AIBOM_JSON }}
             ${{ env.SUMMARY_JSON }}
+          if-no-files-found: warn
 
       - name: Create PR comment body
         id: comment
@@ -130,13 +102,17 @@ jobs:
           status = s["status"]
           emoji = "✅" if status == "PASS" else "❌"
 
+          if s.get("artifact_generated"):
+            artifact_note = f"Artifact uploaded: `{os.environ['AIBOM_JSON']}`"
+          else:
+            artifact_note = "Artifact not generated (scan may have failed before producing output)."
+
           body = f"""### {emoji} AI-BOM Scan Result: **{status}**
 
           - **Components found:** {s["components_found"]}
-          - **Risk score:** {s["risk_score"]} (threshold: {s["risk_threshold"]})
-          - **Risky components (>= threshold):** {s["risky_components"]}
+          - **Policy gate:** {s["policy_gate"]}
 
-          Artifact uploaded: `aibom.json`
+          {artifact_note}
           """
 
           with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
@@ -151,3 +127,11 @@ jobs:
           issue-number: ${{ github.event.pull_request.number }}
           body: ${{ steps.comment.outputs.body }}
           edit-mode: replace
+
+      # Enforce failure after comment + artifacts (so reviewers still see output)
+      - name: Fail if policy gate failed
+        if: steps.scan.outcome != 'success'
+        run: |
+          echo "AI-BOM policy gate failed (fail-on: high)."
+          exit 1
+          
