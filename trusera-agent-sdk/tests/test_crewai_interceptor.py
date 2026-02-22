@@ -26,8 +26,6 @@ class TestCrewAIInterceptorInstall:
 
 class TestCrewAIInterceptorEvaluation:
     def test_deny_blocks(self, deny_all_cache):
-        i = TruseraCrewAIInterceptor(
-            policy_cache=deny_all_cache, enforcement="block"
-        )
+        i = TruseraCrewAIInterceptor(policy_cache=deny_all_cache, enforcement="block")
         allowed, reason = i._evaluate("tool_call", "search")
         assert allowed is False

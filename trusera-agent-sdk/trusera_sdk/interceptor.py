@@ -124,7 +124,9 @@ class TruseraInterceptor:
                 return False
         return True
 
-    def _evaluate(self, url: str, method: str, headers: dict[str, str] | None = None) -> tuple[bool, str, str | None]:
+    def _evaluate(
+        self, url: str, method: str, headers: dict[str, str] | None = None
+    ) -> tuple[bool, str, str | None]:
         """Evaluate a request against the policy cache.
 
         Returns:
@@ -183,7 +185,9 @@ class TruseraInterceptor:
         )
         self._client.track(event)
 
-    def _emit_interception(self, method: str, url: str, status_code: int | None, duration_ms: float, allowed: bool) -> None:
+    def _emit_interception(
+        self, method: str, url: str, status_code: int | None, duration_ms: float, allowed: bool
+    ) -> None:
         if not self._client:
             return
         self._event_count += 1
@@ -296,7 +300,9 @@ class TruseraInterceptor:
         # urllib3 url may be relative; reconstruct from pool
         full_url = url
         if not url.startswith("http"):
-            scheme = "https" if hasattr(pool_self, "scheme") and pool_self.scheme == "https" else "http"
+            scheme = (
+                "https" if hasattr(pool_self, "scheme") and pool_self.scheme == "https" else "http"
+            )
             host = getattr(pool_self, "host", "unknown")
             port = getattr(pool_self, "port", None)
             port_str = f":{port}" if port and port not in (80, 443) else ""
@@ -346,7 +352,9 @@ class TruseraInterceptor:
             interceptor_ref = self
 
             def _httpx_sync_send(client_self: Any, request: Any, **kwargs: Any) -> Any:
-                return interceptor_ref._intercept_httpx_sync(_orig_sync, client_self, request, **kwargs)
+                return interceptor_ref._intercept_httpx_sync(
+                    _orig_sync, client_self, request, **kwargs
+                )
 
             _httpx.Client.send = _httpx_sync_send  # type: ignore[method-assign]
 
@@ -355,7 +363,9 @@ class TruseraInterceptor:
             _orig_async = self._orig_httpx_async_send
 
             async def _httpx_async_send(client_self: Any, request: Any, **kwargs: Any) -> Any:
-                return await interceptor_ref._intercept_httpx_async(_orig_async, client_self, request, **kwargs)
+                return await interceptor_ref._intercept_httpx_async(
+                    _orig_async, client_self, request, **kwargs
+                )
 
             _httpx.AsyncClient.send = _httpx_async_send  # type: ignore[method-assign]
 
@@ -366,7 +376,9 @@ class TruseraInterceptor:
             interceptor_u3 = self
 
             def _u3_urlopen(pool_self: Any, method: str, url: str, **kwargs: Any) -> Any:
-                return interceptor_u3._intercept_urllib3_urlopen(_orig_u3, pool_self, method, url, **kwargs)
+                return interceptor_u3._intercept_urllib3_urlopen(
+                    _orig_u3, pool_self, method, url, **kwargs
+                )
 
             _urllib3.HTTPConnectionPool.urlopen = _u3_urlopen  # type: ignore[assignment]
 

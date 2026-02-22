@@ -2,6 +2,7 @@
 
 from ai_bom.reporters.base import BaseReporter
 from ai_bom.reporters.cli_reporter import CLIReporter
+from ai_bom.reporters.cisco_aibom import CiscoAIBOMReporter
 from ai_bom.reporters.csv_reporter import CSVReporter
 from ai_bom.reporters.cyclonedx import CycloneDXReporter
 from ai_bom.reporters.html_reporter import HTMLReporter
@@ -20,6 +21,7 @@ REPORTERS: dict[str, type[BaseReporter]] = {
     "spdx3": SPDX3Reporter,
     "csv": CSVReporter,
     "junit": JUnitReporter,
+    "cisco-aibom": CiscoAIBOMReporter,
 }
 
 

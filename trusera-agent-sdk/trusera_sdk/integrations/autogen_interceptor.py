@@ -76,12 +76,14 @@ if AUTOGEN_AVAILABLE:
             if allowed:
                 return
             if self._client:
-                self._client.track(Event(
-                    type=EventType.POLICY_VIOLATION,
-                    name=f"policy_violation_{action}",
-                    payload={"action": action, "target": target, "reason": reason},
-                    metadata={"enforcement": self.enforcement.value},
-                ))
+                self._client.track(
+                    Event(
+                        type=EventType.POLICY_VIOLATION,
+                        name=f"policy_violation_{action}",
+                        payload={"action": action, "target": target, "reason": reason},
+                        metadata={"enforcement": self.enforcement.value},
+                    )
+                )
             if self.enforcement == EnforcementMode.BLOCK:
                 raise PolicyViolationError(action=action, target=target, reason=reason)
             if self.enforcement == EnforcementMode.WARN:

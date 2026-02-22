@@ -51,7 +51,7 @@ def example_with_policy():
     print("\n=== With Policy (block mode) ===")
 
     # First, create a policy file
-    policy_content = '''
+    policy_content = """
     // Block requests to DeepSeek API
     forbid (
         principal,
@@ -78,7 +78,7 @@ def example_with_policy():
     ) when {
         request.path contains "/upload"
     };
-    '''
+    """
 
     with open("example-policy.cedar", "w") as f:
         f.write(policy_content)
@@ -142,8 +142,8 @@ def example_exclude_patterns():
         log_file="filtered-events.jsonl",
         exclude_patterns=[
             r"api\.trusera\.",  # Skip Trusera API
-            r"localhost:\d+",   # Skip localhost
-            r"127\.0\.0\.1",    # Skip loopback
+            r"localhost:\d+",  # Skip localhost
+            r"127\.0\.0\.1",  # Skip loopback
         ],
     ) as iceptor:
         client = httpx.Client()
@@ -164,10 +164,10 @@ def example_enforcement_modes():
     """Demonstrating different enforcement modes."""
     print("\n=== Enforcement Modes ===")
 
-    policy_content = '''
+    policy_content = """
     forbid (principal, action == Action::"http", resource)
     when { request.path contains "/admin" };
-    '''
+    """
 
     with open("admin-policy.cedar", "w") as f:
         f.write(policy_content)

@@ -24,6 +24,4 @@ class PolicyViolationError(Exception):
         self.target = target
         self.reason = reason
         self.policy_id = policy_id
-        super().__init__(
-            f"Policy violation [{action}] {target}: {reason}"
-        )
+        super().__init__(f"Policy violation [{action}] {target}: {reason}")
