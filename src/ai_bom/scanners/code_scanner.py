@@ -20,6 +20,7 @@ from ai_bom.config import (
 )
 from ai_bom.detectors.endpoint_db import detect_api_key
 from ai_bom.detectors.llm_patterns import LLM_PATTERNS, get_all_dep_names
+from ai_bom.detectors.model_registry import lookup_model
 from ai_bom.models import AIComponent, ComponentType, SourceLocation, UsageType
 from ai_bom.scanners.base import BaseScanner
 
@@ -235,11 +236,42 @@ class CodeScanner(BaseScanner):
                 usage_matched = any(re.search(up, line) for up in pat.usage_patterns)
                 if import_matched or usage_matched:
                     if pat.sdk_name in file_seen_sdks:
+                        if pat.model_extraction and usage_matched:
+                            model_match = re.search(pat.model_extraction, line)
+                            if model_match:
+                                model_name = model_match.group(1)
+                                flags: list[str] = []
+                                if model_name in DEPRECATED_MODELS:
+                                    flags.append("deprecated_model")
+                                if not self._is_model_pinned(model_name):
+                                    flags.append("unpinned_model")
+                                if flags:
+                                    provider = pat.provider
+                                    metadata = lookup_model(model_name)
+                                    if metadata:
+                                        provider = str(metadata["provider"])
+                                    component = AIComponent(
+                                        name=f"{pat.sdk_name} Model",
+                                        type=ComponentType.model,
+                                        provider=provider,
+                                        model_name=model_name,
+                                        usage_type=pat.usage_type,
+                                        location=SourceLocation(
+                                            file_path=str(path),
+                                            line_number=line_num,
+                                            context_snippet=line.strip()[:200],
+                                        ),
+                                        flags=flags,
+                                        source="code",
+                                    )
+                                    components.append(component)
                         continue
                     file_seen_sdks.add(pat.sdk_name)
                     is_shadow_ai = not self._is_declared(pat.dep_names, declared_deps)
                     model_name = ""
                     flags: list[str] = []
+                    provider = pat.provider
+
                     if pat.model_extraction and usage_matched:
                         model_match = re.search(pat.model_extraction, line)
                         if model_match:
@@ -248,12 +280,16 @@ class CodeScanner(BaseScanner):
                                 flags.append("deprecated_model")
                             if not self._is_model_pinned(model_name):
                                 flags.append("unpinned_model")
+                            metadata = lookup_model(model_name)
+                            if metadata:
+                                provider = str(metadata["provider"])
+
                     if is_shadow_ai:
                         flags.append("shadow_ai")
                     component = AIComponent(
                         name=pat.sdk_name,
                         type=pat.component_type,
-                        provider=pat.provider,
+                        provider=provider,
                         model_name=model_name,
                         usage_type=pat.usage_type,
                         location=SourceLocation(
@@ -457,10 +493,14 @@ class CodeScanner(BaseScanner):
 
                                     # Create a model component
                                     if model_flags:
+                                        provider = llm_pat.provider
+                                        metadata = lookup_model(model_name)
+                                        if metadata:
+                                            provider = str(metadata["provider"])
                                         component = AIComponent(
                                             name=f"{llm_pat.sdk_name} Model",
                                             type=ComponentType.model,
-                                            provider=llm_pat.provider,
+                                            provider=provider,
                                             model_name=model_name,
                                             usage_type=llm_pat.usage_type,
                                             location=SourceLocation(
@@ -483,6 +523,7 @@ class CodeScanner(BaseScanner):
                         model_name = ""
                         sdk_flags: list[str] = []
 
+                        provider = llm_pat.provider
                         if llm_pat.model_extraction and usage_matched:
                             model_match = re.search(llm_pat.model_extraction, line)
                             if model_match:
@@ -495,6 +536,10 @@ class CodeScanner(BaseScanner):
                                 # Check for unpinned model (just a bare name)
                                 if not self._is_model_pinned(model_name):
                                     sdk_flags.append("unpinned_model")
+                                    
+                                metadata = lookup_model(model_name)
+                                if metadata:
+                                    provider = str(metadata["provider"])
 
                         if is_shadow_ai:
                             sdk_flags.append("shadow_ai")
@@ -502,7 +547,7 @@ class CodeScanner(BaseScanner):
                         component = AIComponent(
                             name=llm_pat.sdk_name,
                             type=llm_pat.component_type,
-                            provider=llm_pat.provider,
+                            provider=provider,
                             model_name=model_name,
                             usage_type=llm_pat.usage_type,
                             location=SourceLocation(

@@ -54,6 +54,21 @@ MODEL_REGISTRY: dict[str, dict[str, str | bool]] = {
     "llama-3": {"provider": "Meta", "deprecated": False},
     "llama-2": {"provider": "Meta", "deprecated": False},
     "codellama": {"provider": "Meta", "deprecated": False},
+    # xAI Models
+    "grok-2": {"provider": "xAI", "deprecated": False},
+    "grok-1.5": {"provider": "xAI", "deprecated": False},
+    "grok-1": {"provider": "xAI", "deprecated": False},
+    "grok-beta": {"provider": "xAI", "deprecated": False},
+    "grok": {"provider": "xAI", "deprecated": False},
+    # Alibaba Models
+    "qwen-max": {"provider": "Alibaba", "deprecated": False},
+    "qwen-plus": {"provider": "Alibaba", "deprecated": False},
+    "qwen-turbo": {"provider": "Alibaba", "deprecated": False},
+    "qwen-coder": {"provider": "Alibaba", "deprecated": False},
+    "qwen2.5": {"provider": "Alibaba", "deprecated": False},
+    "qwen2": {"provider": "Alibaba", "deprecated": False},
+    "qwen1.5": {"provider": "Alibaba", "deprecated": False},
+    "qwen": {"provider": "Alibaba", "deprecated": False},
 }
 
 

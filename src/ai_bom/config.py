@@ -153,6 +153,10 @@ KNOWN_AI_ENDPOINTS: list[tuple[Pattern[str], str, str]] = [
     (re.compile(r"127\.0\.0\.1:11434"), "Ollama", "completion"),
     # Agent-to-Agent (A2A)
     (re.compile(r"a2a\.googleapis\.com"), "Google A2A", "agent"),
+    # xAI
+    (re.compile(r"api\.x\.ai"), "xAI", "completion"),
+    # Alibaba
+    (re.compile(r"dashscope\.aliyuncs\.com"), "Alibaba", "completion"),
 ]
 
 # =============================================================================
@@ -211,6 +215,10 @@ KNOWN_MODEL_PATTERNS: list[tuple[Pattern[str], str]] = [
     (re.compile(r"llama-4(-\w+)*"), "Meta"),
     # DeepSeek
     (re.compile(r"deepseek-\w+(-\w+)*"), "DeepSeek"),
+    # Alibaba Qwen
+    (re.compile(r"qwen(?:\d+(?:\.\d+)?)*(?:-\w+)*"), "Alibaba"),
+    # xAI Grok
+    (re.compile(r"grok-(?:\d+(?:\.\d+)?|\w+)(?:-\w+)*"), "xAI"),
 ]
 
 # =============================================================================
@@ -222,10 +230,11 @@ KNOWN_MODEL_PATTERNS: list[tuple[Pattern[str], str]] = [
 API_KEY_PATTERNS: list[tuple[Pattern[str], str]] = [
     # OpenAI (sk-proj- keys allow hyphens, must check before generic sk- pattern)
     (re.compile(r"sk-proj-[a-zA-Z0-9_-]{20,}"), "OpenAI"),
-    # Note: DeepSeek also uses sk- prefix, causing overlap with OpenAI pattern
-    # The sk-[a-zA-Z0-9]{20,} pattern below will match both OpenAI and DeepSeek keys
-    # Additional context heuristics may be needed to distinguish between them
-    (re.compile(r"sk-[a-zA-Z0-9]{20,}"), "OpenAI/DeepSeek"),
+    # Note: DeepSeek also uses sk- prefix, causing overlap with OpenAI pattern.
+    # We require 'deepseek' in the surrounding context or variable name.
+    (re.compile(r"(?i)deepseek[_-]?(?:api[_-]?key|token|secret)?[\s'\"\=]+(sk-[a-zA-Z0-9]{20,})"), "DeepSeek"),
+    # OpenAI fallback
+    (re.compile(r"sk-[a-zA-Z0-9]{20,}"), "OpenAI"),
     # Anthropic
     (re.compile(r"sk-ant-[a-zA-Z0-9-]{20,}"), "Anthropic"),
     # HuggingFace

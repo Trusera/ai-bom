@@ -69,7 +69,8 @@ def detect_api_key(text: str) -> list[tuple[str, str, str]]:
 
     for pattern, provider in API_KEY_PATTERNS:
         for match in pattern.finditer(text):
-            key = match.group(0)
+            # Use the first capture group if present, otherwise the full match
+            key = match.group(1) if match.lastindex else match.group(0)
 
             # Mask the key for security
             if len(key) <= 12:
