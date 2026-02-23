@@ -240,12 +240,12 @@ class CodeScanner(BaseScanner):
                             model_match = re.search(pat.model_extraction, line)
                             if model_match:
                                 model_name = model_match.group(1)
-                                flags: list[str] = []
+                                model_flags: list[str] = []
                                 if model_name in DEPRECATED_MODELS:
-                                    flags.append("deprecated_model")
+                                    model_flags.append("deprecated_model")
                                 if not self._is_model_pinned(model_name):
-                                    flags.append("unpinned_model")
-                                if flags:
+                                    model_flags.append("unpinned_model")
+                                if model_flags:
                                     provider = pat.provider
                                     metadata = lookup_model(model_name)
                                     if metadata:
@@ -261,7 +261,7 @@ class CodeScanner(BaseScanner):
                                             line_number=line_num,
                                             context_snippet=line.strip()[:200],
                                         ),
-                                        flags=flags,
+                                        flags=model_flags,
                                         source="code",
                                     )
                                     components.append(component)
