@@ -119,8 +119,6 @@ The image is published to `ghcr.io/trusera/ai-bom` on every tagged release.
 
 ---
 
-
-
 ## What It Finds
 
 | Category | Examples | Scanner |
