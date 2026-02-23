@@ -536,7 +536,7 @@ class CodeScanner(BaseScanner):
                                 # Check for unpinned model (just a bare name)
                                 if not self._is_model_pinned(model_name):
                                     sdk_flags.append("unpinned_model")
-                                    
+
                                 metadata = lookup_model(model_name)
                                 if metadata:
                                     provider = str(metadata["provider"])

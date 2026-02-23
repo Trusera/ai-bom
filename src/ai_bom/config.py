@@ -232,7 +232,12 @@ API_KEY_PATTERNS: list[tuple[Pattern[str], str]] = [
     (re.compile(r"sk-proj-[a-zA-Z0-9_-]{20,}"), "OpenAI"),
     # Note: DeepSeek also uses sk- prefix, causing overlap with OpenAI pattern.
     # We require 'deepseek' in the surrounding context or variable name.
-    (re.compile(r"(?i)deepseek[_-]?(?:api[_-]?key|token|secret)?[\s'\"\=]+(sk-[a-zA-Z0-9]{20,})"), "DeepSeek"),
+    (
+        re.compile(
+            r"(?i)deepseek[_-]?(?:api[_-]?key|token|secret)?[\s'\"\=]+(sk-[a-zA-Z0-9]{20,})"
+        ),
+        "DeepSeek",
+    ),
     # OpenAI fallback
     (re.compile(r"sk-[a-zA-Z0-9]{20,}"), "OpenAI"),
     # Anthropic
