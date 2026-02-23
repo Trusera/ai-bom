@@ -299,6 +299,8 @@ Scan all your n8n workflows for AI security risks — directly inside n8n. One n
 3. Activate the workflow
 4. Visit `http://your-n8n-url/webhook/trusera`
 
+Looking for a step-by-step guide? Check out our [n8n Quickstart Guide](docs/guides/n8n-quickstart.md)
+
 That's it. The node fetches all workflows, scans them, and serves an interactive HTML dashboard.
 
 ### Included Nodes
