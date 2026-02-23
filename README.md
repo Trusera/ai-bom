@@ -58,6 +58,7 @@ ai-bom scan . -f sarif -o results.sarif
 
 # Fail CI on critical findings
 ai-bom scan . --fail-on critical --quiet
+
 ### Utility Commands
 
 Explore and manage your AI-BOM environment with these additional commands:
