@@ -56,8 +56,7 @@ class TestEndpointDB:
     def test_detect_openai_key(self):
         keys = detect_api_key('api_key="sk-demo1234567890abcdefghijklmnopqrstuvwxyz1234"')
         assert len(keys) > 0
-        # Note: sk- pattern matches both OpenAI and DeepSeek
-        assert any(k[1] in ("OpenAI", "OpenAI/DeepSeek") for k in keys)
+        assert any(k[1] == "OpenAI" for k in keys)
 
     def test_detect_anthropic_key(self):
         keys = detect_api_key('key = "sk-ant-demo1234567890abcdefghij"')
@@ -90,14 +89,15 @@ class TestAPIKeyPatterns:
     @pytest.mark.parametrize(
         "key,provider",
         [
-            ("sk-abcdefghijklmnopqrstuvwxyz1234", "OpenAI/DeepSeek"),  # Updated to match config
+            ("sk-abcdefghijklmnopqrstuvwxyz1234", "OpenAI"),
+            ("deepseek_api_key = 'sk-abcdefghijklmnopqrstuvwxyz1234'", "DeepSeek"),
             ("sk-ant-abcdefghijklmnopqrstuvwxyz", "Anthropic"),
             ("hf_abcdefghijklmnopqrstuvwxyz", "HuggingFace"),
         ],
     )
     def test_key_patterns(self, key, provider):
         for pattern, pat_provider in API_KEY_PATTERNS:
-            if re.match(pattern, key) and pat_provider == provider:
+            if re.search(pattern, key) and pat_provider == provider:
                 return
         pytest.fail(f"No pattern matched {key} for {provider}")
 
