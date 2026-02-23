@@ -1,0 +1,30 @@
+name: Security and Lint Scan
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install security tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit flake8
+
+      - name: Run Bandit (Security Vulnerability Scan)
+        run: bandit -r . -ll -ii
+
+      - name: Run Flake8 (Syntax and Quality Scan)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
