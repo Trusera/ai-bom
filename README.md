@@ -59,23 +59,7 @@ ai-bom scan . -f sarif -o results.sarif
 # Fail CI on critical findings
 ai-bom scan . --fail-on critical --quiet
 
-### Utility Commands
 
-Explore and manage your AI-BOM environment with these additional commands:
-
-```bash
-# List all registered AI scanners and their current status
-ai-bom list-scanners
-
-# Compare two scan results to identify new components or risk changes
-ai-bom diff scan1.json scan2.json
-
-# Launch the interactive web dashboard for visual risk analysis
-ai-bom dashboard
-
-# Watch a directory and automatically re-scan when files change
-ai-bom watch .
-```
 
 <details>
 <summary>Alternative: Install in a virtual environment</summary>
@@ -300,7 +284,7 @@ Scan all your n8n workflows for AI security risks — directly inside n8n. One n
 3. Activate the workflow
 4. Visit `http://your-n8n-url/webhook/trusera`
 
-Looking for a step-by-step guide? Check out our [n8n Quickstart Guide](docs/guides/n8n-quickstart.md)
+
 
 That's it. The node fetches all workflows, scans them, and serves an interactive HTML dashboard.
 
