@@ -32,7 +32,7 @@ EXIT_ERROR = 2  # Operational errors (bad path, network failure, parse error, et
 
 app = typer.Typer(
     name="ai-bom",
-    help="AI Bill of Materials  discover and inventory all AI/LLM components.",
+    help="AI Bill of Materials — discover and inventory all AI/LLM components.",
     rich_markup_mode="markdown",
     no_args_is_help=True,
 )
@@ -188,7 +188,7 @@ def _resolve_target(
             raise typer.Exit(EXIT_ERROR)
         scan_path = n8n_path
     elif n8n_url:
-        # Live n8n scanning via API â€" handled separately in scan()
+        # Live n8n scanning via API — handled separately in scan()
         # Return a dummy path; the caller uses the n8n_url flag to branch.
         scan_path = Path(".")  # not used for actual file scanning
     else:
