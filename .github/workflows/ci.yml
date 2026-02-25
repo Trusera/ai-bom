@@ -102,7 +102,7 @@ jobs:
 
       - name: Run AI-BOM self-scan (SARIF)
         run: |
-          ai-bom scan . --format sarif -o ai-bom-results.sarif --quiet || true
+          ai-bom scan . --fail-on critical --format sarif -o ai-bom-results.sarif --quiet || true
 
       - name: Upload SARIF results
         if: github.event_name == 'push'
