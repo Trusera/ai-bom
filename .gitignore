@@ -45,5 +45,8 @@ Thumbs.db
 *.tgz
 out/
 
+# Demo video (Remotion project - not part of ai-bom)
+demo-video/
+
 # Confidential documents
 *.docx

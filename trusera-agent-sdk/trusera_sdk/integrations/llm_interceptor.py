@@ -69,12 +69,14 @@ class TruseraLLMInterceptor:
         if allowed:
             return
         if self._client:
-            self._client.track(Event(
-                type=EventType.POLICY_VIOLATION,
-                name=f"policy_violation_{action}",
-                payload={"action": action, "target": target, "reason": reason},
-                metadata={"enforcement": self.enforcement.value},
-            ))
+            self._client.track(
+                Event(
+                    type=EventType.POLICY_VIOLATION,
+                    name=f"policy_violation_{action}",
+                    payload={"action": action, "target": target, "reason": reason},
+                    metadata={"enforcement": self.enforcement.value},
+                )
+            )
         if self.enforcement == EnforcementMode.BLOCK:
             raise PolicyViolationError(action=action, target=target, reason=reason)
         if self.enforcement == EnforcementMode.WARN:
@@ -85,14 +87,14 @@ class TruseraLLMInterceptor:
             return
         payload: dict[str, Any] = {"provider": provider, "model": model}
         if messages and self._redactor:
-            payload["messages"] = self._redactor.redact(
-                _extract_message_texts(messages)
+            payload["messages"] = self._redactor.redact(_extract_message_texts(messages))
+        self._client.track(
+            Event(
+                type=EventType.LLM_INVOKE,
+                name=f"llm_{provider}_{model}",
+                payload=payload,
             )
-        self._client.track(Event(
-            type=EventType.LLM_INVOKE,
-            name=f"llm_{provider}_{model}",
-            payload=payload,
-        ))
+        )
 
     def _check_tool_use_in_response(self, response: Any) -> None:
         """Evaluate tool_use / function_call blocks in an LLM response."""

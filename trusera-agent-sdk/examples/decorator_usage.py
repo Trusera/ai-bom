@@ -16,10 +16,7 @@ def search_web(query: str, max_results: int = 10) -> list[dict]:
     """Simulate a web search."""
     print(f"Searching for: {query}")
     time.sleep(0.1)  # Simulate API call
-    return [
-        {"title": f"Result {i}", "url": f"https://example.com/{i}"}
-        for i in range(max_results)
-    ]
+    return [{"title": f"Result {i}", "url": f"https://example.com/{i}"} for i in range(max_results)]
 
 
 @monitor(event_type=EventType.LLM_INVOKE, name="llm_summarize")

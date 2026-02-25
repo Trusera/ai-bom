@@ -70,14 +70,14 @@ SEVERITY_ORDER = {"critical": 4, "high": 3, "medium": 2, "low": 1, "info": 0, "n
 # Pattern 1: forbid (principal, action == Action::"deploy", resource) when { ... };
 RULE_PATTERN_TYPED = re.compile(
     r'forbid\s*\(\s*principal\s*,\s*action\s*==\s*Action::"(\w+)"\s*,\s*resource\s*\)'
-    r'\s*when\s*\{([^}]+)\}\s*;',
+    r"\s*when\s*\{([^}]+)\}\s*;",
     re.MULTILINE | re.DOTALL,
 )
 
 # Pattern 2: forbid (principal, action, resource) when { ... };
 RULE_PATTERN_SIMPLE = re.compile(
-    r'forbid\s*\(\s*principal\s*,\s*action\s*,\s*resource\s*\)'
-    r'\s*when\s*\{([^}]+)\}\s*;',
+    r"forbid\s*\(\s*principal\s*,\s*action\s*,\s*resource\s*\)"
+    r"\s*when\s*\{([^}]+)\}\s*;",
     re.MULTILINE | re.DOTALL,
 )
 
@@ -93,7 +93,7 @@ def parse_policy(policy_text: str) -> list[PolicyRule]:
     """Parse a Cedar-like policy file into a list of rules."""
     rules: list[PolicyRule] = []
     # Strip comments (// style)
-    cleaned = re.sub(r'//[^\n]*', '', policy_text)
+    cleaned = re.sub(r"//[^\n]*", "", policy_text)
 
     # Match typed action rules: action == Action::"deploy"
     for match in RULE_PATTERN_TYPED.finditer(cleaned):
@@ -260,9 +260,7 @@ def evaluate(
     return violations
 
 
-def filter_by_severity(
-    violations: list[Violation], min_severity: str
-) -> list[Violation]:
+def filter_by_severity(violations: list[Violation], min_severity: str) -> list[Violation]:
     """Filter violations to only include those at or above the given severity."""
     threshold = SEVERITY_ORDER.get(min_severity.lower(), 0)
     if threshold == 0:
@@ -299,9 +297,7 @@ def extract_components(scan_data: dict[str, Any]) -> list[dict[str, Any]]:
                 comp: dict[str, Any] = {
                     "name": result.get("ruleId", "unknown"),
                     "severity": result.get("level", "none"),
-                    "component_type": result.get("properties", {}).get(
-                        "component_type", "unknown"
-                    ),
+                    "component_type": result.get("properties", {}).get("component_type", "unknown"),
                     "provider": result.get("properties", {}).get("provider", "unknown"),
                     "risk_score": result.get("properties", {}).get("risk_score", 0),
                 }
@@ -376,9 +372,7 @@ def emit_annotations(violations: list[Violation]) -> None:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Cedar-like policy gate for AI-BOM scan results"
-    )
+    parser = argparse.ArgumentParser(description="Cedar-like policy gate for AI-BOM scan results")
     parser.add_argument("results", help="Path to scan results JSON file")
     parser.add_argument("policy", help="Path to Cedar policy file")
     parser.add_argument("--summary", help="Path to write violation report")

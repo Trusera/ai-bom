@@ -10,7 +10,7 @@ from .interceptor import TruseraInterceptor
 from .pii import PIIRedactor
 from .standalone import RequestBlockedError, StandaloneInterceptor
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
 
 
 def intercept(

@@ -1,4 +1,7 @@
 <div align="center">
+<a href="https://github.com/trusera/ai-bom/actions/workflows/ai-bom-scan.yml">
+  <img src="https://github.com/trusera/ai-bom/actions/workflows/ai-bom-scan.yml/badge.svg" alt="AI-BOM Scan" />
+</a>
   <img src="https://raw.githubusercontent.com/Trusera/ai-bom/main/assets/logo.png" alt="AI-BOM Logo" width="120" />
   <br /><br />
   <h1>AI-BOM</h1>
@@ -17,7 +20,7 @@
   <a href="#agent-sdks">SDKs</a>&ensp;&middot;&ensp;
   <a href="#n8n-community-node">n8n Node</a>&ensp;&middot;&ensp;
   <a href="#cicd-integration">CI/CD</a>&ensp;&middot;&ensp;
-  <a href="#comparison">Compare</a>&ensp;&middot;&ensp;
+  <a href="docs/comparison.md">Compare</a>&ensp;&middot;&ensp;
   <a href="#architecture">Docs</a>
 </div>
 
@@ -309,6 +312,7 @@ That's it. The node fetches all workflows, scans them, and serves an interactive
 - Optional password protection (AES-256-GCM encrypted, client-side decryption)
 
 ---
+> Looking for AI-BOM ecosystem comparisons? See [AI-BOM Tool Comparison](docs/comparison.md).
 
 ## Comparison
 

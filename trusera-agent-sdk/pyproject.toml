@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "trusera-sdk"
-version = "1.0.0"
+version = "1.1.0"
 description = "Python SDK for monitoring and intercepting AI agent actions with Trusera"
 readme = "README.md"
 license = {text = "Apache-2.0"}

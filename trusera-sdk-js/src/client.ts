@@ -1,5 +1,7 @@
 import type { Event } from "./events.js";
 
+const SDK_VERSION = "1.0.0";
+
 /**
  * Configuration options for TruseraClient.
  */
@@ -16,6 +18,18 @@ export interface TruseraClientOptions {
   batchSize?: number;
   /** Enable debug logging to console */
   debug?: boolean;
+  /** Auto-register with fleet discovery on startup (default: false).
+   *  Overridden by TRUSERA_AUTO_REGISTER env var. */
+  autoRegister?: boolean;
+  /** Agent name for fleet registration (defaults to os.hostname()) */
+  agentName?: string;
+  /** Agent type for fleet registration (e.g. "langchain") */
+  agentType?: string;
+  /** Deployment environment for fleet registration */
+  environment?: string;
+  /** Heartbeat interval in ms (default: 60000).
+   *  Overridden by TRUSERA_HEARTBEAT_INTERVAL env var. */
+  heartbeatInterval?: number;
 }
 
 /**
@@ -54,6 +68,15 @@ export class TruseraClient {
   private flushTimer: NodeJS.Timeout | undefined;
   private isClosed = false;
 
+  // Fleet auto-registration
+  private readonly autoRegister: boolean;
+  private readonly agentName: string;
+  private readonly agentType: string;
+  private readonly environment: string;
+  private readonly heartbeatInterval: number;
+  private fleetAgentId: string | undefined;
+  private heartbeatTimer: NodeJS.Timeout | undefined;
+
   constructor(options: TruseraClientOptions) {
     this.apiKey = options.apiKey;
     this.baseUrl = options.baseUrl ?? "https://api.trusera.io";
@@ -62,13 +85,40 @@ export class TruseraClient {
     this.flushInterval = options.flushInterval ?? 5000;
     this.debug = options.debug ?? false;
 
+    // Fleet config with env var overrides
+    const envAuto = (typeof process !== "undefined" ? process.env?.TRUSERA_AUTO_REGISTER : undefined) ?? "";
+    if (envAuto.toLowerCase() === "true" || envAuto === "1") {
+      this.autoRegister = true;
+    } else if (envAuto.toLowerCase() === "false" || envAuto === "0") {
+      this.autoRegister = false;
+    } else {
+      this.autoRegister = options.autoRegister ?? false;
+    }
+
+    const hostname = typeof process !== "undefined" && process.env?.HOSTNAME
+      ? process.env.HOSTNAME
+      : typeof globalThis !== "undefined" && "navigator" in globalThis
+        ? "browser"
+        : "unknown";
+    this.agentName = options.agentName ?? (typeof process !== "undefined" ? process.env?.TRUSERA_AGENT_NAME : undefined) ?? hostname;
+    this.agentType = options.agentType ?? (typeof process !== "undefined" ? process.env?.TRUSERA_AGENT_TYPE : undefined) ?? "";
+    this.environment = options.environment ?? (typeof process !== "undefined" ? process.env?.TRUSERA_ENVIRONMENT : undefined) ?? "";
+    const envHb = typeof process !== "undefined" ? process.env?.TRUSERA_HEARTBEAT_INTERVAL : undefined;
+    this.heartbeatInterval = envHb ? parseInt(envHb, 10) * 1000 : (options.heartbeatInterval ?? 60000);
+
     if (!this.apiKey.startsWith("tsk_")) {
       throw new Error("Invalid API key format. Must start with 'tsk_'");
     }
 
     // Start auto-flush timer
     this.startFlushTimer();
-    this.log("TruseraClient initialized", { baseUrl: this.baseUrl, batchSize: this.batchSize });
+
+    // Fleet auto-registration
+    if (this.autoRegister) {
+      void this.registerWithFleet();
+    }
+
+    this.log("TruseraClient initialized", { baseUrl: this.baseUrl, batchSize: this.batchSize, autoRegister: this.autoRegister });
   }
 
   /**
@@ -189,6 +239,7 @@ export class TruseraClient {
     this.log("Closing client");
     this.isClosed = true;
     this.stopFlushTimer();
+    this.stopHeartbeat();
     await this.flush();
     this.log("Client closed");
   }
@@ -206,6 +257,114 @@ export class TruseraClient {
   getAgentId(): string | undefined {
     return this.agentId;
   }
+
+  // -- Fleet auto-registration --
+
+  private getProcessInfo(): Record<string, unknown> {
+    if (typeof process === "undefined") return {};
+    return {
+      pid: process.pid,
+      argv: process.argv?.slice(0, 10),
+      node_version: process.version,
+      platform: process.platform,
+      arch: process.arch,
+    };
+  }
+
+  private getNetworkInfo(): Record<string, unknown> {
+    const info: Record<string, unknown> = {};
+    if (typeof process !== "undefined") {
+      try {
+        const os = require("os");
+        info.hostname = os.hostname?.();
+      } catch {
+        info.hostname = process.env?.HOSTNAME ?? "unknown";
+      }
+    }
+    return info;
+  }
+
+  private async registerWithFleet(): Promise<void> {
+    const payload: Record<string, unknown> = {
+      name: this.agentName,
+      discovery_method: "sdk",
+      sdk_version: SDK_VERSION,
+      hostname: this.agentName,
+      process_info: this.getProcessInfo(),
+      network_info: this.getNetworkInfo(),
+    };
+    if (this.agentType) payload.framework = this.agentType;
+    if (this.environment) payload.environment = this.environment;
+
+    try {
+      const response = await fetch(`${this.baseUrl}/api/v1/fleet/register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        this.log("Fleet auto-register failed", { status: response.status });
+        return;
+      }
+
+      const data = await response.json() as { data?: { id?: string }; id?: string };
+      const agentData = data.data ?? data;
+      const fleetId = agentData.id;
+      if (fleetId) {
+        this.fleetAgentId = String(fleetId);
+        this.startHeartbeat();
+        this.log("Fleet auto-register succeeded", { fleetAgentId: this.fleetAgentId });
+      }
+    } catch (err) {
+      this.log("Fleet auto-register error (continuing without)", { error: String(err) });
+    }
+  }
+
+  private startHeartbeat(): void {
+    this.heartbeatTimer = setInterval(() => {
+      void this.sendHeartbeat();
+    }, this.heartbeatInterval);
+
+    if (this.heartbeatTimer.unref) {
+      this.heartbeatTimer.unref();
+    }
+  }
+
+  private stopHeartbeat(): void {
+    if (this.heartbeatTimer) {
+      clearInterval(this.heartbeatTimer);
+      this.heartbeatTimer = undefined;
+    }
+  }
+
+  private async sendHeartbeat(): Promise<void> {
+    if (!this.fleetAgentId) return;
+    try {
+      const payload = {
+        process_info: this.getProcessInfo(),
+        network_info: this.getNetworkInfo(),
+      };
+      const response = await fetch(`${this.baseUrl}/api/v1/fleet/${this.fleetAgentId}/heartbeat`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.apiKey}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      if (!response.ok) {
+        this.log("Fleet heartbeat failed", { status: response.status });
+      }
+    } catch (err) {
+      this.log("Fleet heartbeat error", { error: String(err) });
+    }
+  }
+
+  // -- Timers --
 
   private startFlushTimer(): void {
     this.flushTimer = setInterval(() => {

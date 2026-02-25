@@ -26,8 +26,6 @@ class TestAutoGenInterceptorInstall:
 
 class TestAutoGenInterceptorEvaluation:
     def test_deny_blocks(self, deny_all_cache):
-        i = TruseraAutoGenInterceptor(
-            policy_cache=deny_all_cache, enforcement="block"
-        )
+        i = TruseraAutoGenInterceptor(policy_cache=deny_all_cache, enforcement="block")
         allowed, reason = i._evaluate("function_call", "search")
         assert allowed is False

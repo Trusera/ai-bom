@@ -38,14 +38,16 @@ class TestPolicyCacheNoClient:
 
 class TestPolicyCacheWithClient:
     def test_eager_load(self):
-        client = _make_mock_client(policies=[
-            {
-                "id": "p1",
-                "name": "Block evil",
-                "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "evil.com" };',
-                "enabled": True,
-            }
-        ])
+        client = _make_mock_client(
+            policies=[
+                {
+                    "id": "p1",
+                    "name": "Block evil",
+                    "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "evil.com" };',
+                    "enabled": True,
+                }
+            ]
+        )
         cache = PolicyCache(client=client, refresh_interval=999)
 
         result = cache.evaluate_request("https://evil.com/api", "GET")
@@ -57,13 +59,15 @@ class TestPolicyCacheWithClient:
         cache.stop()
 
     def test_disabled_policy_ignored(self):
-        client = _make_mock_client(policies=[
-            {
-                "id": "p1",
-                "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "evil.com" };',
-                "enabled": False,
-            }
-        ])
+        client = _make_mock_client(
+            policies=[
+                {
+                    "id": "p1",
+                    "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "evil.com" };',
+                    "enabled": False,
+                }
+            ]
+        )
         cache = PolicyCache(client=client, refresh_interval=999)
 
         result = cache.evaluate_request("https://evil.com/api", "GET")
@@ -72,13 +76,15 @@ class TestPolicyCacheWithClient:
 
     def test_hash_based_skip(self):
         """Second refresh with same DSL should not rebuild evaluator."""
-        client = _make_mock_client(policies=[
-            {
-                "id": "p1",
-                "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "x.com" };',
-                "enabled": True,
-            }
-        ])
+        client = _make_mock_client(
+            policies=[
+                {
+                    "id": "p1",
+                    "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "x.com" };',
+                    "enabled": True,
+                }
+            ]
+        )
         cache = PolicyCache(client=client, refresh_interval=999)
         first_eval = cache._evaluator
 
@@ -87,13 +93,15 @@ class TestPolicyCacheWithClient:
         cache.stop()
 
     def test_invalidate_forces_refresh(self):
-        client = _make_mock_client(policies=[
-            {
-                "id": "p1",
-                "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "a.com" };',
-                "enabled": True,
-            }
-        ])
+        client = _make_mock_client(
+            policies=[
+                {
+                    "id": "p1",
+                    "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "a.com" };',
+                    "enabled": True,
+                }
+            ]
+        )
         cache = PolicyCache(client=client, refresh_interval=999)
         assert cache._policy_hash != ""
 
@@ -102,13 +110,15 @@ class TestPolicyCacheWithClient:
         cache.stop()
 
     def test_api_failure_keeps_stale(self):
-        client = _make_mock_client(policies=[
-            {
-                "id": "p1",
-                "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "evil.com" };',
-                "enabled": True,
-            }
-        ])
+        client = _make_mock_client(
+            policies=[
+                {
+                    "id": "p1",
+                    "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "evil.com" };',
+                    "enabled": True,
+                }
+            ]
+        )
         cache = PolicyCache(client=client, refresh_interval=999, stale_ttl=300)
 
         # First load succeeds
@@ -125,13 +135,15 @@ class TestPolicyCacheWithClient:
         cache.stop()
 
     def test_stale_ttl_exceeded_fails_open(self):
-        client = _make_mock_client(policies=[
-            {
-                "id": "p1",
-                "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "evil.com" };',
-                "enabled": True,
-            }
-        ])
+        client = _make_mock_client(
+            policies=[
+                {
+                    "id": "p1",
+                    "cedar_dsl": 'forbid (principal, action == Action::"http", resource) when { request.hostname == "evil.com" };',
+                    "enabled": True,
+                }
+            ]
+        )
         cache = PolicyCache(client=client, refresh_interval=999, stale_ttl=0.1)
 
         result = cache.evaluate_request("https://evil.com/api", "GET")

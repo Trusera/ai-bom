@@ -1,6 +1,6 @@
 {
   "name": "trusera-sdk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "TypeScript SDK for monitoring AI agents with Trusera - intercept HTTP (fetch, axios, undici), evaluate Cedar policies",
   "type": "module",
   "main": "dist/index.cjs",

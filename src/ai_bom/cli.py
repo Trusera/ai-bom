@@ -282,7 +282,8 @@ def scan(
         "table",
         "--format",
         "-f",
-        help="Output format: table, cyclonedx, json, html, markdown, sarif, spdx3, csv, junit",
+        help="Output format: table, cyclonedx, json, html, markdown,"
+        " sarif, spdx3, csv, junit, cisco-aibom",
     ),
     output: Optional[str] = typer.Option(
         None,
@@ -730,7 +731,8 @@ def scan_cloud(
         "table",
         "--format",
         "-f",
-        help="Output format: table, cyclonedx, json, html, markdown, sarif, spdx3, csv, junit",
+        help="Output format: table, cyclonedx, json, html, markdown,"
+        " sarif, spdx3, csv, junit, cisco-aibom",
     ),
     output: Optional[str] = typer.Option(None, "--output", "-o", help="Output file path"),
     quiet: bool = typer.Option(False, "--quiet", "-q", help="Suppress banner and progress"),
