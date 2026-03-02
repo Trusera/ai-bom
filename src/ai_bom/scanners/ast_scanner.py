@@ -2,7 +2,8 @@
 
 Uses Python's ``ast`` module to detect:
 - Import statements for known AI packages
-- Decorator patterns (@agent, @tool, @crew, @task, @flow)
+- Decorator patterns (@agent, @tool, @crew, @task, @flow, @start, @listen, @router)
+- CrewAI Flow class inheritance (``class MyFlow(Flow)``)
 - Function calls to AI APIs
 - String literals containing model names
 
@@ -36,6 +37,15 @@ _AI_API_CALLS: list[tuple[str, str, str]] = [
     (r"litellm\.completion", "LiteLLM", "LiteLLM completion"),
     (r"replicate\.run", "Replicate", "Replicate run"),
 ]
+
+
+_FLOW_MODULE = "crewai.flow"
+_FLOW_CLASS = "Flow"
+
+_RELATIONSHIP_KEYS: dict[str, str] = {
+    "listen": "listens_to",
+    "router": "routes_from",
+}
 
 
 def _attr_chain(node: ast.expr) -> str:
@@ -91,6 +101,7 @@ class ASTScanner(BaseScanner):
         components: list[AIComponent] = []
         components.extend(self._detect_imports(tree, file_path))
         components.extend(self._detect_decorators(tree, file_path))
+        components.extend(self._detect_flow_classes(tree, file_path))
         components.extend(self._detect_api_calls(tree, file_path))
         components.extend(self._detect_model_strings(tree, file_path))
         return components
@@ -161,9 +172,26 @@ class ASTScanner(BaseScanner):
 
                 if dec_name and dec_name in decorator_names:
                     pattern_type = decorator_names[dec_name]
+                    usage = (
+                        UsageType.orchestration
+                        if pattern_type.startswith("flow_")
+                        else UsageType.agent
+                    )
+                    meta: dict = {
+                        "decorator": dec_name,
+                        "pattern_type": pattern_type,
+                    }
+
+                    rel_key = _RELATIONSHIP_KEYS.get(dec_name)
+                    if rel_key and isinstance(dec, ast.Call) and dec.args:
+                        refs = self._extract_decorator_refs(dec.args)
+                        if refs:
+                            meta[rel_key] = refs[0] if len(refs) == 1 else refs
+
                     components.append(
                         AIComponent(
-                            name=f"CrewAI {pattern_type}: {getattr(node, 'name', '?')}",
+                            name=f"CrewAI {pattern_type}: "
+                            f"{getattr(node, 'name', '?')}",
                             type=ComponentType.agent_framework,
                             provider="CrewAI",
                             location=SourceLocation(
@@ -171,12 +199,80 @@ class ASTScanner(BaseScanner):
                                 line_number=dec.lineno,
                                 context_snippet=f"@{dec_name}",
                             ),
-                            usage_type=UsageType.agent,
+                            usage_type=usage,
                             risk=RiskAssessment(),
                             source="ast",
-                            metadata={"decorator": dec_name, "pattern_type": pattern_type},
+                            metadata=meta,
                         )
                     )
+        return components
+
+    @staticmethod
+    def _extract_decorator_refs(args: list[ast.expr]) -> list[str]:
+        """Extract reference names from decorator call arguments."""
+        refs: list[str] = []
+        for arg in args:
+            if isinstance(arg, ast.Name):
+                refs.append(arg.id)
+            elif isinstance(arg, ast.Attribute):
+                refs.append(_attr_chain(arg))
+            elif isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                refs.append(arg.value)
+        return refs
+
+    # -- flow classes ---------------------------------------------------
+
+    @staticmethod
+    def _collect_flow_aliases(tree: ast.Module) -> set[str]:
+        """Scan imports to find all names that alias crewai.flow.Flow."""
+        aliases: set[str] = {_FLOW_CLASS}
+        for node in ast.walk(tree):
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and _FLOW_MODULE in node.module
+            ):
+                for alias in node.names:
+                    if alias.name == _FLOW_CLASS:
+                        aliases.add(alias.asname or alias.name)
+        return aliases
+
+    def _detect_flow_classes(
+        self, tree: ast.Module, file_path: Path
+    ) -> list[AIComponent]:
+        flow_names = self._collect_flow_aliases(tree)
+        components: list[AIComponent] = []
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.ClassDef):
+                continue
+            for base in node.bases:
+                base_name = (
+                    _attr_chain(base)
+                    if isinstance(base, ast.Attribute)
+                    else base.id if isinstance(base, ast.Name) else ""
+                )
+                if base_name in flow_names or base_name.endswith(f".{_FLOW_CLASS}"):
+                    components.append(
+                        AIComponent(
+                            name=f"CrewAI Flow: {node.name}",
+                            type=ComponentType.agent_framework,
+                            provider="CrewAI",
+                            location=SourceLocation(
+                                file_path=str(file_path),
+                                line_number=node.lineno,
+                                context_snippet=f"class {node.name}({base_name})",
+                            ),
+                            usage_type=UsageType.orchestration,
+                            risk=RiskAssessment(),
+                            source="ast",
+                            metadata={
+                                "class": node.name,
+                                "base_class": base_name,
+                                "pattern_type": "flow_class",
+                            },
+                        )
+                    )
+                    break
         return components
 
     # -- API calls ------------------------------------------------------
