@@ -954,6 +954,10 @@ def demo() -> None:
         validate_schema=False,
         json_output=False,
         telemetry=None,
+        llm_enrich=False,
+        llm_model="gpt-4o-mini",
+        llm_api_key=None,
+        llm_base_url=None,
     )
 
 
