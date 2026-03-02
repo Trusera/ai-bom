@@ -26,6 +26,7 @@ from ai_bom.config import (
 )
 from ai_bom.detectors.endpoint_db import match_endpoint
 from ai_bom.detectors.llm_patterns import LLM_PATTERNS
+from ai_bom.models import ComponentType, UsageType
 from ai_bom.scanners.ast_scanner import ASTScanner
 from ai_bom.scanners.network_scanner import NetworkScanner
 
@@ -73,6 +74,9 @@ class TestCrewAIFlowDetection:
         assert "@task" in CREWAI_FLOW_PATTERNS
         assert "@flow" in CREWAI_FLOW_PATTERNS
         assert "@tool" in CREWAI_FLOW_PATTERNS
+        assert "@start" in CREWAI_FLOW_PATTERNS
+        assert "@listen" in CREWAI_FLOW_PATTERNS
+        assert "@router" in CREWAI_FLOW_PATTERNS
 
     def test_crewai_flow_pattern_values(self):
         assert CREWAI_FLOW_PATTERNS["@crew"] == "crew_definition"
@@ -80,23 +84,261 @@ class TestCrewAIFlowDetection:
         assert CREWAI_FLOW_PATTERNS["@task"] == "task_definition"
         assert CREWAI_FLOW_PATTERNS["@flow"] == "flow_definition"
         assert CREWAI_FLOW_PATTERNS["@tool"] == "tool_definition"
+        assert CREWAI_FLOW_PATTERNS["@start"] == "flow_start"
+        assert CREWAI_FLOW_PATTERNS["@listen"] == "flow_listener"
+        assert CREWAI_FLOW_PATTERNS["@router"] == "flow_router"
 
     def test_crewai_llm_pattern_has_flow_decorators(self):
         crewai_patterns = [p for p in LLM_PATTERNS if p.sdk_name == "CrewAI"]
         assert len(crewai_patterns) == 1
         crewai = crewai_patterns[0]
-        # Check that flow decorator regex patterns are in usage_patterns
         assert any("@flow" in p for p in crewai.usage_patterns)
         assert any("@crew" in p for p in crewai.usage_patterns)
         assert any("@agent" in p for p in crewai.usage_patterns)
         assert any("@task" in p for p in crewai.usage_patterns)
         assert any("@tool" in p for p in crewai.usage_patterns)
+        assert any("@start" in p for p in crewai.usage_patterns)
+        assert any("@listen" in p for p in crewai.usage_patterns)
+        assert any("@router" in p for p in crewai.usage_patterns)
 
     def test_crewai_flow_import_pattern(self):
         crewai_patterns = [p for p in LLM_PATTERNS if p.sdk_name == "CrewAI"]
         crewai = crewai_patterns[0]
         # Should detect 'from crewai.flow' import
         assert any(re.search(p, "from crewai.flow import Flow") for p in crewai.import_patterns)
+
+
+# ── 5b-ext: CrewAI Flow Decorators (Issue #40) ─────────────────────────────
+
+
+class TestCrewAIFlowDecorators:
+    """Test CrewAI Flow decorator detection, class inheritance, and relationships."""
+
+    def _scan_code(self, code: str) -> list:
+        """Helper: parse *code* with ASTScanner and return detected components."""
+        import ast
+
+        scanner = ASTScanner()
+        scanner.enabled = True
+        source = textwrap.dedent(code)
+        tree = ast.parse(source)
+        return scanner._analyse_tree(tree, Path("test.py"), source)
+
+    # -- decorator detection ------------------------------------------
+
+    def test_start_decorator_detected(self):
+        comps = self._scan_code("""\
+            from crewai.flow import Flow, start
+
+            class F(Flow):
+                @start()
+                def begin(self):
+                    pass
+        """)
+        start_comps = [c for c in comps if c.metadata.get("pattern_type") == "flow_start"]
+        assert len(start_comps) == 1
+        assert start_comps[0].usage_type == UsageType.orchestration
+        assert start_comps[0].metadata["decorator"] == "start"
+
+    def test_listen_decorator_with_name_ref(self):
+        comps = self._scan_code("""\
+            from crewai.flow import Flow, start, listen
+
+            class F(Flow):
+                @start()
+                def begin(self):
+                    pass
+                @listen(begin)
+                def process(self, data):
+                    pass
+        """)
+        listen_comps = [
+            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
+        ]
+        assert len(listen_comps) == 1
+        assert listen_comps[0].metadata["listens_to"] == "begin"
+        assert listen_comps[0].usage_type == UsageType.orchestration
+
+    def test_router_decorator_with_name_ref(self):
+        comps = self._scan_code("""\
+            from crewai.flow import Flow, start, router
+
+            class F(Flow):
+                @start()
+                def begin(self):
+                    pass
+                @router(begin)
+                def route(self, data):
+                    pass
+        """)
+        router_comps = [
+            c for c in comps if c.metadata.get("pattern_type") == "flow_router"
+        ]
+        assert len(router_comps) == 1
+        assert router_comps[0].metadata["routes_from"] == "begin"
+        assert router_comps[0].usage_type == UsageType.orchestration
+
+    # -- relationship edge cases --------------------------------------
+
+    def test_listen_attribute_ref(self):
+        comps = self._scan_code("""\
+            from crewai.flow import Flow, listen
+
+            class F(Flow):
+                @listen(self.begin)
+                def process(self, data):
+                    pass
+        """)
+        listen_comps = [
+            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
+        ]
+        assert len(listen_comps) == 1
+        assert listen_comps[0].metadata["listens_to"] == "self.begin"
+
+    def test_listen_string_ref(self):
+        comps = self._scan_code("""\
+            from crewai.flow import Flow, listen
+
+            class F(Flow):
+                @listen("begin")
+                def process(self, data):
+                    pass
+        """)
+        listen_comps = [
+            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
+        ]
+        assert len(listen_comps) == 1
+        assert listen_comps[0].metadata["listens_to"] == "begin"
+
+    def test_listen_multiple_args(self):
+        comps = self._scan_code("""\
+            from crewai.flow import Flow, listen
+
+            class F(Flow):
+                @listen(step_a, step_b)
+                def combine(self, data):
+                    pass
+        """)
+        listen_comps = [
+            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
+        ]
+        assert len(listen_comps) == 1
+        assert listen_comps[0].metadata["listens_to"] == ["step_a", "step_b"]
+
+    def test_listen_no_args(self):
+        comps = self._scan_code("""\
+            from crewai.flow import Flow, listen
+
+            class F(Flow):
+                @listen()
+                def process(self, data):
+                    pass
+        """)
+        listen_comps = [
+            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
+        ]
+        assert len(listen_comps) == 1
+        assert "listens_to" not in listen_comps[0].metadata
+
+    # -- flow class inheritance ---------------------------------------
+
+    def test_flow_class_direct(self):
+        comps = self._scan_code("""\
+            from crewai.flow import Flow
+
+            class MyFlow(Flow):
+                pass
+        """)
+        flow_cls = [c for c in comps if c.metadata.get("pattern_type") == "flow_class"]
+        assert len(flow_cls) == 1
+        assert flow_cls[0].name == "CrewAI Flow: MyFlow"
+        assert flow_cls[0].metadata["base_class"] == "Flow"
+        assert flow_cls[0].usage_type == UsageType.orchestration
+
+    def test_flow_class_alias(self):
+        comps = self._scan_code("""\
+            from crewai.flow import Flow as BaseFlow
+
+            class MyFlow(BaseFlow):
+                pass
+        """)
+        flow_cls = [c for c in comps if c.metadata.get("pattern_type") == "flow_class"]
+        assert len(flow_cls) == 1
+        assert flow_cls[0].metadata["base_class"] == "BaseFlow"
+
+    def test_flow_class_attribute_chain(self):
+        comps = self._scan_code("""\
+            import crewai.flow
+
+            class MyFlow(crewai.flow.Flow):
+                pass
+        """)
+        flow_cls = [c for c in comps if c.metadata.get("pattern_type") == "flow_class"]
+        assert len(flow_cls) == 1
+        assert flow_cls[0].metadata["base_class"] == "crewai.flow.Flow"
+
+    def test_non_flow_class_ignored(self):
+        comps = self._scan_code("""\
+            class NotAFlow(SomeOtherBase):
+                pass
+        """)
+        flow_cls = [c for c in comps if c.metadata.get("pattern_type") == "flow_class"]
+        assert len(flow_cls) == 0
+
+    # -- usage type ---------------------------------------------------
+
+    def test_original_decorators_keep_agent_usage_type(self):
+        comps = self._scan_code("""\
+            from crewai import crew, agent, task
+
+            @crew
+            def my_crew():
+                pass
+
+            @agent
+            def my_agent():
+                pass
+
+            @task
+            def my_task():
+                pass
+        """)
+        for c in comps:
+            if c.metadata.get("decorator") in ("crew", "agent", "task"):
+                assert c.usage_type == UsageType.agent
+
+    # -- integration: fixture file ------------------------------------
+
+    def test_full_fixture_scan(self, tmp_path: Path):
+        fixture = Path(__file__).parent / "fixtures" / "sample_crew_flow.py"
+        scanner = ASTScanner()
+        scanner.enabled = True
+        comps = scanner.scan(fixture)
+
+        pattern_types = {c.metadata.get("pattern_type") for c in comps}
+        assert "flow_class" in pattern_types
+        assert "flow_start" in pattern_types
+        assert "flow_listener" in pattern_types
+        assert "flow_router" in pattern_types
+
+        flow_comps = [
+            c for c in comps if c.metadata.get("pattern_type", "").startswith("flow_")
+        ]
+        assert len(flow_comps) >= 4  # class + start + listen + router
+        for c in flow_comps:
+            assert c.usage_type == UsageType.orchestration
+            assert c.type == ComponentType.agent_framework
+            assert c.provider == "CrewAI"
+
+        listen_comp = next(
+            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
+        )
+        assert listen_comp.metadata["listens_to"] == "begin"
+
+        router_comp = next(
+            c for c in comps if c.metadata.get("pattern_type") == "flow_router"
+        )
+        assert router_comp.metadata["routes_from"] == "process"
 
 
 # ── 5c: MCP Config File Detection ──────────────────────────────────────────

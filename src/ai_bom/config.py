@@ -425,6 +425,9 @@ CREWAI_FLOW_PATTERNS: dict[str, str] = {
     "@task": "task_definition",
     "@flow": "flow_definition",
     "@tool": "tool_definition",
+    "@start": "flow_start",
+    "@listen": "flow_listener",
+    "@router": "flow_router",
 }
 
 # =============================================================================
