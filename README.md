@@ -128,6 +128,8 @@ The image is published to `ghcr.io/trusera/ai-bom` on every tagged release.
 
 **25+ AI SDKs detected** across Python, JavaScript, TypeScript, Java, Go, Rust, and Ruby.
 
+**Optional LLM enrichment** — use `--llm-enrich` to extract specific model names (e.g., gpt-4o, claude-3-opus) from code via OpenAI, Anthropic, or local Ollama models. See [docs/enrichment.md](docs/enrichment.md).
+
 ---
 
 ## Agent SDKs

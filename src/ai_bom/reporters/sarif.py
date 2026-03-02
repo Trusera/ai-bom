@@ -80,7 +80,7 @@ def _build_result(component: AIComponent, target_path: str, rule_index_map: dict
     if file_path and file_path != "dependency files":
         # Make path relative to target for SARIF
         try:
-            rel = str(Path(file_path).relative_to(Path(target_path).resolve()))
+            rel = str(Path(file_path).relative_to(target_path))
         except ValueError:
             rel = file_path
 
