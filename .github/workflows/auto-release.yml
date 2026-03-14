@@ -214,7 +214,7 @@ jobs:
           eval "$BUMP_SCRIPT"
           bump_version 'js-v*' 'js-v' 'trusera-sdk-js/'
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         if: steps.bump.outputs.skip != 'true'
         with: { node-version: 20, registry-url: "https://registry.npmjs.org" }
 
@@ -293,7 +293,7 @@ jobs:
           eval "$BUMP_SCRIPT"
           bump_version 'n8n-v*' 'n8n-v' 'n8n-node/'
 
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
         if: steps.bump.outputs.skip != 'true'
         with: { node-version: 20, registry-url: "https://registry.npmjs.org" }
 
