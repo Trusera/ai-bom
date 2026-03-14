@@ -62,8 +62,8 @@ jobs:
                 if not isinstance(components, list):
                   components = []
 
-          except FileNotFoundError:
-            # Scan step may fail before producing output.
+          except (FileNotFoundError, json.JSONDecodeError, ValueError):
+            # Scan step may fail before producing output or produce invalid JSON.
             components = []
 
           summary = {
