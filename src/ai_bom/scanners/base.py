@@ -18,7 +18,7 @@ logger = logging.getLogger(__name__)
 _scanner_registry: list[type[BaseScanner]] = []
 
 # Cached .ai-bomignore spec (module-level singleton)
-_ignore_spec: Any = None
+_ignore_spec: Any | None = None
 _ignore_spec_loaded: bool = False
 
 
@@ -54,7 +54,7 @@ def _load_ignore_spec(root: Path) -> Any:
         return None
 
     try:
-        text = ignore_file.read_text(encoding="utf-8")
+        text: str = ignore_file.read_text(encoding="utf-8")
         _ignore_spec = pathspec.PathSpec.from_lines("gitwildmatch", text.splitlines())
         logger.debug("Loaded .ai-bomignore with %d patterns", len(_ignore_spec.patterns))
     except Exception as exc:
@@ -215,7 +215,7 @@ class BaseScanner(ABC):
         root = root.resolve()
 
         # Load .ai-bomignore spec (cached after first call)
-        ignore_spec = _load_ignore_spec(root if root.is_dir() else root.parent)
+        ignore_spec: Any | None = _load_ignore_spec(root if root.is_dir() else root.parent)
 
         # Track real paths to detect symlink cycles
         seen_real_paths: set[Path] = set()
@@ -267,7 +267,7 @@ class BaseScanner(ABC):
                 logger.warning("Cannot read file %s: %s", root, e)
                 return
 
-            matches = False
+            matches:bool = False
             if extensions is not None and root.suffix.lower() in extensions:
                 matches = True
             if filenames is not None and (root.name in filenames or root.name.lower() in filenames):
@@ -290,6 +290,7 @@ class BaseScanner(ABC):
         # Walk the directory tree
         try:
             for dirpath, dirnames, filenames_list in os.walk(root, topdown=True, followlinks=True):
+             
                 # Resolve current directory to detect symlink cycles
                 try:
                     current_real = Path(os.path.realpath(dirpath))
