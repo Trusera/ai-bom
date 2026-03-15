@@ -10,9 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://trusera.github.io/ai-bom/comparison/">
+        <link rel="canonical" href="https://trusera.github.io/ai-bom/enrichment/">
       
       
+        <link rel="prev" href="../outputs/">
+      
+      
+        <link rel="next" href="../ci-integration/">
       
       
         
@@ -23,7 +27,7 @@
     
     
       
-        <title>AI-BOM Tool Comparison - AI-BOM Documentation</title>
+        <title>LLM Enrichment - AI-BOM Documentation</title>
       
     
     
@@ -76,7 +80,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#ai-bom-tool-comparison" class="md-skip">
+        <a href="#llm-enrichment" class="md-skip">
           Skip to content
         </a>
       
@@ -112,7 +116,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              AI-BOM Tool Comparison
+              LLM Enrichment
             
           </span>
         </div>
@@ -1109,10 +1113,37 @@
       
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../enrichment/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    LLM Enrichment
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1128,6 +1159,142 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#installation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Installation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#usage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Usage
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Usage">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#basic" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Basic
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-a-specific-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With a specific model
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-an-explicit-api-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With an explicit API key
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#privacy-and-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privacy and Security
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Providers
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -1438,10 +1605,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#feature-comparison" class="md-nav__link">
+  <a href="#installation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Feature Comparison
+        Installation
       
     </span>
   </a>
@@ -1449,22 +1616,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#notes" class="md-nav__link">
+  <a href="#usage" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Notes
+        Usage
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="Notes">
+    <nav class="md-nav" aria-label="Usage">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#ai-bom" class="md-nav__link">
+  <a href="#basic" class="md-nav__link">
     <span class="md-ellipsis">
       
-        ai-bom
+        Basic
       
     </span>
   </a>
@@ -1472,10 +1639,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#cisco-aibom" class="md-nav__link">
+  <a href="#with-a-specific-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Cisco AIBOM
+        With a specific model
       
     </span>
   </a>
@@ -1483,10 +1650,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#snyk-aibom" class="md-nav__link">
+  <a href="#with-an-explicit-api-key" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Snyk AIBOM
+        With an explicit API key
       
     </span>
   </a>
@@ -1495,6 +1662,61 @@
         
       </ul>
     </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cli-options" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CLI Options
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-works" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How It Works
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#privacy-and-security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Privacy and Security
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cost" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Cost
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#supported-providers" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Supported Providers
+      
+    </span>
+  </a>
   
 </li>
       
@@ -1518,119 +1740,110 @@
   
 
 
-<h1 id="ai-bom-tool-comparison">AI-BOM Tool Comparison<a class="headerlink" href="#ai-bom-tool-comparison" title="Permanent link">&para;</a></h1>
-<p>This document compares <strong>ai-bom</strong> with other AI Bill of Materials tools currently available in the ecosystem.</p>
-<p>The goal is to help users understand feature differences and choose the right tool for their workflow.</p>
+<h1 id="llm-enrichment">LLM Enrichment<a class="headerlink" href="#llm-enrichment" title="Permanent link">&para;</a></h1>
+<p>AI-BOM can optionally use an LLM to analyze code snippets around detected AI components and extract the specific model names being used (e.g., <code>gpt-4o</code>, <code>claude-3-opus-20240229</code>, <code>llama3</code>).</p>
+<p>This fills the <code>model_name</code> field that static pattern matching may leave empty, particularly when model names are passed as variables or constructed dynamically.</p>
 <hr />
-<h2 id="feature-comparison">Feature Comparison<a class="headerlink" href="#feature-comparison" title="Permanent link">&para;</a></h2>
+<h2 id="installation">Installation<a class="headerlink" href="#installation" title="Permanent link">&para;</a></h2>
+<p>LLM enrichment requires the <code>litellm</code> package:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>pip<span class="w"> </span>install<span class="w"> </span>ai-bom<span class="o">[</span>enrich<span class="o">]</span>
+</code></pre></div>
+<hr />
+<h2 id="usage">Usage<a class="headerlink" href="#usage" title="Permanent link">&para;</a></h2>
+<h3 id="basic">Basic<a class="headerlink" href="#basic" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>ai-bom<span class="w"> </span>scan<span class="w"> </span>.<span class="w"> </span>--llm-enrich
+</code></pre></div>
+<p>This uses <code>gpt-4o-mini</code> by default (requires <code>OPENAI_API_KEY</code> environment variable).</p>
+<h3 id="with-a-specific-model">With a specific model<a class="headerlink" href="#with-a-specific-model" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c1"># OpenAI</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>ai-bom<span class="w"> </span>scan<span class="w"> </span>.<span class="w"> </span>--llm-enrich<span class="w"> </span>--llm-model<span class="w"> </span>gpt-4o
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c1"># Anthropic</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>ai-bom<span class="w"> </span>scan<span class="w"> </span>.<span class="w"> </span>--llm-enrich<span class="w"> </span>--llm-model<span class="w"> </span>anthropic/claude-3-haiku-20240307
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c1"># Local Ollama (no API key needed)</span>
+<a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a>ai-bom<span class="w"> </span>scan<span class="w"> </span>.<span class="w"> </span>--llm-enrich<span class="w"> </span>--llm-model<span class="w"> </span>ollama/llama3<span class="w"> </span>--llm-base-url<span class="w"> </span>http://localhost:11434
+</code></pre></div>
+<h3 id="with-an-explicit-api-key">With an explicit API key<a class="headerlink" href="#with-an-explicit-api-key" title="Permanent link">&para;</a></h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>ai-bom<span class="w"> </span>scan<span class="w"> </span>.<span class="w"> </span>--llm-enrich<span class="w"> </span>--llm-api-key<span class="w"> </span>sk-your-key-here
+</code></pre></div>
+<p>If <code>--llm-api-key</code> is not provided, litellm falls back to standard environment variables (<code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>, etc.).</p>
+<hr />
+<h2 id="cli-options">CLI Options<a class="headerlink" href="#cli-options" title="Permanent link">&para;</a></h2>
 <table>
 <thead>
 <tr>
-<th>Feature</th>
-<th>ai-bom</th>
-<th>Cisco AIBOM</th>
-<th>Snyk AIBOM</th>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>License</td>
-<td>Apache 2.0</td>
-<td>Apache 2.0</td>
-<td>Proprietary</td>
+<td><code>--llm-enrich</code></td>
+<td><code>False</code></td>
+<td>Enable LLM enrichment</td>
 </tr>
 <tr>
-<td>Open Source</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>No</td>
+<td><code>--llm-model</code></td>
+<td><code>gpt-4o-mini</code></td>
+<td>litellm model identifier</td>
 </tr>
 <tr>
-<td>Scanners</td>
-<td>13+ (code, cloud, Docker, GitHub Actions, Jupyter, MCP, n8n, etc.)</td>
-<td>1 (Python-focused)</td>
-<td>Unknown</td>
+<td><code>--llm-api-key</code></td>
+<td>None</td>
+<td>API key (falls back to env vars)</td>
 </tr>
 <tr>
-<td>Output Formats</td>
-<td>9 (Table, JSON, SARIF, SPDX, CycloneDX, CSV, HTML, Markdown, JUnit)</td>
-<td>JSON, CSV</td>
-<td>Unknown</td>
-</tr>
-<tr>
-<td>CI/CD Integration</td>
-<td>GitHub Action, GitLab CI</td>
-<td>No</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>LLM Enrichment</td>
-<td>Yes</td>
-<td>Yes</td>
-<td>Early access / limited preview</td>
-</tr>
-<tr>
-<td>n8n Scanning</td>
-<td>Yes</td>
-<td>No</td>
-<td>No</td>
-</tr>
-<tr>
-<td>MCP / A2A Detection</td>
-<td>Yes</td>
-<td>No</td>
-<td>No</td>
-</tr>
-<tr>
-<td>Agent Framework Detection</td>
-<td>LangChain, CrewAI, AutoGen, LlamaIndex, Semantic Kernel</td>
-<td>Limited</td>
-<td>Unknown</td>
-</tr>
-<tr>
-<td>Binary Model Detection</td>
-<td>Yes (.onnx, .pt, .safetensors, etc.)</td>
-<td>No</td>
-<td>Unknown</td>
-</tr>
-<tr>
-<td>Policy Enforcement</td>
-<td>Cedar policy gate</td>
-<td>No</td>
-<td>Yes</td>
-</tr>
-<tr>
-<td>Best For</td>
-<td>Multi-framework projects needing multiple formats and optional LLM enrichment</td>
-<td>Python projects needing LLM enrichment</td>
-<td>Existing Snyk customers</td>
+<td><code>--llm-base-url</code></td>
+<td>None</td>
+<td>Custom API base URL (e.g., Ollama)</td>
 </tr>
 </tbody>
 </table>
 <hr />
-<h2 id="notes">Notes<a class="headerlink" href="#notes" title="Permanent link">&para;</a></h2>
-<h3 id="ai-bom">ai-bom<a class="headerlink" href="#ai-bom" title="Permanent link">&para;</a></h3>
+<h2 id="how-it-works">How It Works<a class="headerlink" href="#how-it-works" title="Permanent link">&para;</a></h2>
+<ol>
+<li>After all scanners run, components with type <code>llm_provider</code> or <code>model</code> that have an empty <code>model_name</code> are selected for enrichment.</li>
+<li>For each eligible component, ~20 lines of code around the detection site are read from the source file.</li>
+<li>The code snippet is sent to the configured LLM with a prompt asking it to extract the model identifier.</li>
+<li>The response is parsed and cross-referenced with AI-BOM's built-in model registry to validate the name and fill in provider/deprecation metadata.</li>
+<li>If the LLM call fails or returns no model name, the component is left unchanged.</li>
+</ol>
+<p>Components that already have a <code>model_name</code> (from static detection) are skipped. Non-model component types (containers, tools, MCP servers, workflows) are never sent to the LLM.</p>
+<hr />
+<h2 id="privacy-and-security">Privacy and Security<a class="headerlink" href="#privacy-and-security" title="Permanent link">&para;</a></h2>
+<p><strong>Code snippets are sent to the LLM provider.</strong> When using cloud-hosted models (OpenAI, Anthropic, etc.), approximately 20 lines of source code around each detected AI import or usage site are transmitted to the provider's API.</p>
+<p>Recommendations:</p>
 <ul>
-<li>Open-source AI Bill of Materials scanner focused on discovering AI/LLM usage across codebases and infrastructure.</li>
-<li>Supports multiple scanners, formats, and compliance mappings (OWASP Agentic Top 10, EU AI Act).</li>
-<li>LLM enrichment (<code>--llm-enrich</code>) uses litellm to extract specific model names from code, supporting OpenAI, Anthropic, Ollama, and 100+ providers.</li>
-<li>Designed for developer workflows with CLI, CI/CD, and dashboard support.</li>
+<li><strong>For sensitive or proprietary codebases</strong>, use a local model via Ollama (<code>--llm-model ollama/llama3</code>). No data leaves your machine.</li>
+<li><strong>Before using cloud APIs</strong>, ensure you have organizational approval to send source code excerpts to the provider.</li>
+<li><strong>Only code around detected AI components</strong> is sent — not entire files, not the full repository.</li>
+<li>AI-BOM does not intentionally include secrets in snippets, but if API keys are hard-coded near import statements, they may be included in the context window. Use <code>--deep</code> scanning to detect and remediate hard-coded keys separately.</li>
 </ul>
-<h3 id="cisco-aibom">Cisco AIBOM<a class="headerlink" href="#cisco-aibom" title="Permanent link">&para;</a></h3>
+<p>A warning is printed when using non-local models:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Warning: LLM enrichment sends code snippets to an external API.
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>Use ollama/* models for local-only processing.
+</code></pre></div>
+<hr />
+<h2 id="cost">Cost<a class="headerlink" href="#cost" title="Permanent link">&para;</a></h2>
+<p>Each eligible component triggers one or more LLM API calls. For projects with many detected AI components, this can result in non-trivial API costs when using paid providers.</p>
 <ul>
-<li>Open-source tool focused primarily on Python projects.</li>
-<li>Uses LLM-based enrichment to extract model usage.</li>
-<li>Limited scanner coverage and output formats compared to ai-bom.</li>
-</ul>
-<h3 id="snyk-aibom">Snyk AIBOM<a class="headerlink" href="#snyk-aibom" title="Permanent link">&para;</a></h3>
-<ul>
-<li>Proprietary feature integrated into the Snyk platform.</li>
-<li>Currently in early access / limited preview.</li>
-<li>Provides CI/CD integration.</li>
-<li>Public documentation on supported scanners and formats is limited.</li>
+<li>Components are batched (default: 5 per call) to reduce the number of API requests.</li>
+<li>Use a low-cost model like <code>gpt-4o-mini</code> for bulk enrichment.</li>
+<li><strong>Ollama is free</strong> — run models locally with zero API cost.</li>
 </ul>
 <hr />
-<p><em>Last updated: 2026</em></p>
+<h2 id="supported-providers">Supported Providers<a class="headerlink" href="#supported-providers" title="Permanent link">&para;</a></h2>
+<p>LLM enrichment uses <a href="https://docs.litellm.ai/">litellm</a> as its backend, which supports 100+ LLM providers including:</p>
+<ul>
+<li>OpenAI (<code>gpt-4o</code>, <code>gpt-4o-mini</code>, etc.)</li>
+<li>Anthropic (<code>anthropic/claude-3-haiku-20240307</code>, etc.)</li>
+<li>Ollama (<code>ollama/llama3</code>, <code>ollama/mistral</code>, etc.)</li>
+<li>Azure OpenAI, AWS Bedrock, Google Vertex AI</li>
+<li>Mistral, Cohere, and many more</li>
+</ul>
+<p>See the <a href="https://docs.litellm.ai/docs/providers">litellm provider list</a> for the full list.</p>
 
 
 
