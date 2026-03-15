@@ -403,11 +403,47 @@ def scan(
         "--telemetry/--no-telemetry",
         help="Enable/disable anonymous telemetry (overrides AI_BOM_TELEMETRY env var)",
     ),
+    llm_enrich: bool = typer.Option(
+        False,
+        "--llm-enrich",
+        help="Use an LLM to extract model names from code snippets (requires ai-bom[enrich])",
+    ),
+    llm_model: str = typer.Option(
+        "gpt-4o-mini",
+        "--llm-model",
+        help="LLM model for enrichment (e.g. gpt-4o-mini, anthropic/claude-3-haiku, ollama/llama3)",
+    ),
+    llm_api_key: Optional[str] = typer.Option(
+        None,
+        "--llm-api-key",
+        help="API key for the LLM provider (falls back to provider env vars like OPENAI_API_KEY)",
+    ),
+    llm_base_url: Optional[str] = typer.Option(
+        None,
+        "--llm-base-url",
+        help="Custom base URL for LLM API (e.g. http://localhost:11434 for Ollama)",
+    ),
 ) -> None:
     """Scan a directory or repository for AI/LLM components."""
     # --json / -j overrides --format
     if json_output:
         format = "json"
+
+    # Validate --llm-enrich dependency early
+    if llm_enrich:
+        try:
+            import litellm  # noqa: F401
+        except ImportError:
+            console.print(
+                "[red]LLM enrichment requires litellm. "
+                "Install with: pip install ai-bom[enrich][/red]"
+            )
+            raise typer.Exit(EXIT_ERROR) from None
+        if not quiet and not llm_model.startswith("ollama/"):
+            console.print(
+                "[yellow]Warning: LLM enrichment sends code snippets to an external API. "
+                "Use ollama/* models for local-only processing.[/yellow]"
+            )
 
     # Setup logging
     _setup_logging(verbose=verbose, debug=debug)
@@ -581,6 +617,23 @@ def scan(
         # Calculate scan duration
         end_time = time.time()
         result.summary.scan_duration_seconds = end_time - start_time
+
+        # LLM enrichment (optional post-processing)
+        if llm_enrich and result.components:
+            from ai_bom.enrichment import enrich_components
+
+            if format == "table" and not quiet:
+                console.print("[cyan]Running LLM enrichment...[/cyan]")
+            enriched = enrich_components(
+                result.components,
+                scan_path=scan_path,
+                model=llm_model,
+                api_key=llm_api_key,
+                base_url=llm_base_url,
+                quiet=quiet,
+            )
+            if format == "table" and not quiet:
+                console.print(f"[green]Enriched {enriched} component(s) with model names[/green]")
 
         # Build summary
         result.build_summary()
@@ -901,6 +954,10 @@ def demo() -> None:
         validate_schema=False,
         json_output=False,
         telemetry=None,
+        llm_enrich=False,
+        llm_model="gpt-4o-mini",
+        llm_api_key=None,
+        llm_base_url=None,
     )
 
 

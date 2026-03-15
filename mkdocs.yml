@@ -67,6 +67,7 @@ nav:
     - CSV: outputs/csv.md
     - JUnit: outputs/junit.md
     - Markdown: outputs/markdown.md
+  - LLM Enrichment: enrichment.md
   - CI/CD Integration: ci-integration.md
   - Policy Enforcement: policy.md
   - Compliance:
