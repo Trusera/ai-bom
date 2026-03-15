@@ -152,9 +152,7 @@ class TestCrewAIFlowDecorators:
                 def process(self, data):
                     pass
         """)
-        listen_comps = [
-            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
-        ]
+        listen_comps = [c for c in comps if c.metadata.get("pattern_type") == "flow_listener"]
         assert len(listen_comps) == 1
         assert listen_comps[0].metadata["listens_to"] == "begin"
         assert listen_comps[0].usage_type == UsageType.orchestration
@@ -171,9 +169,7 @@ class TestCrewAIFlowDecorators:
                 def route(self, data):
                     pass
         """)
-        router_comps = [
-            c for c in comps if c.metadata.get("pattern_type") == "flow_router"
-        ]
+        router_comps = [c for c in comps if c.metadata.get("pattern_type") == "flow_router"]
         assert len(router_comps) == 1
         assert router_comps[0].metadata["routes_from"] == "begin"
         assert router_comps[0].usage_type == UsageType.orchestration
@@ -189,9 +185,7 @@ class TestCrewAIFlowDecorators:
                 def process(self, data):
                     pass
         """)
-        listen_comps = [
-            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
-        ]
+        listen_comps = [c for c in comps if c.metadata.get("pattern_type") == "flow_listener"]
         assert len(listen_comps) == 1
         assert listen_comps[0].metadata["listens_to"] == "self.begin"
 
@@ -204,9 +198,7 @@ class TestCrewAIFlowDecorators:
                 def process(self, data):
                     pass
         """)
-        listen_comps = [
-            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
-        ]
+        listen_comps = [c for c in comps if c.metadata.get("pattern_type") == "flow_listener"]
         assert len(listen_comps) == 1
         assert listen_comps[0].metadata["listens_to"] == "begin"
 
@@ -219,9 +211,7 @@ class TestCrewAIFlowDecorators:
                 def combine(self, data):
                     pass
         """)
-        listen_comps = [
-            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
-        ]
+        listen_comps = [c for c in comps if c.metadata.get("pattern_type") == "flow_listener"]
         assert len(listen_comps) == 1
         assert listen_comps[0].metadata["listens_to"] == ["step_a", "step_b"]
 
@@ -234,9 +224,7 @@ class TestCrewAIFlowDecorators:
                 def process(self, data):
                     pass
         """)
-        listen_comps = [
-            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
-        ]
+        listen_comps = [c for c in comps if c.metadata.get("pattern_type") == "flow_listener"]
         assert len(listen_comps) == 1
         assert "listens_to" not in listen_comps[0].metadata
 
@@ -321,23 +309,17 @@ class TestCrewAIFlowDecorators:
         assert "flow_listener" in pattern_types
         assert "flow_router" in pattern_types
 
-        flow_comps = [
-            c for c in comps if c.metadata.get("pattern_type", "").startswith("flow_")
-        ]
+        flow_comps = [c for c in comps if c.metadata.get("pattern_type", "").startswith("flow_")]
         assert len(flow_comps) >= 4  # class + start + listen + router
         for c in flow_comps:
             assert c.usage_type == UsageType.orchestration
             assert c.type == ComponentType.agent_framework
             assert c.provider == "CrewAI"
 
-        listen_comp = next(
-            c for c in comps if c.metadata.get("pattern_type") == "flow_listener"
-        )
+        listen_comp = next(c for c in comps if c.metadata.get("pattern_type") == "flow_listener")
         assert listen_comp.metadata["listens_to"] == "begin"
 
-        router_comp = next(
-            c for c in comps if c.metadata.get("pattern_type") == "flow_router"
-        )
+        router_comp = next(c for c in comps if c.metadata.get("pattern_type") == "flow_router")
         assert router_comp.metadata["routes_from"] == "process"
 
 

@@ -41,7 +41,7 @@ def _read_context(file_path: str, line_number: int | None, scan_path: Path) -> s
                 start = max(0, line_number - 1 - CONTEXT_LINES)
                 end = min(len(lines), line_number + CONTEXT_LINES)
                 return "\n".join(lines[start:end])
-            return "\n".join(lines[:CONTEXT_LINES * 2])
+            return "\n".join(lines[: CONTEXT_LINES * 2])
         except OSError:
             continue
     return ""
@@ -112,10 +112,12 @@ def _parse_batch_result(raw: str, expected_count: int) -> list[dict[str, str]]:
             parsed = []
             for item in results:
                 if isinstance(item, dict):
-                    parsed.append({
-                        "model_name": str(item.get("model_name", "")),
-                        "provider": str(item.get("provider", "")),
-                    })
+                    parsed.append(
+                        {
+                            "model_name": str(item.get("model_name", "")),
+                            "provider": str(item.get("provider", "")),
+                        }
+                    )
                 else:
                     parsed.append({"model_name": "", "provider": ""})
             return parsed
@@ -164,10 +166,7 @@ def enrich_components(
 
     Returns the number of components that were enriched.
     """
-    eligible = [
-        c for c in components
-        if c.type in ENRICHABLE_TYPES and not c.model_name
-    ]
+    eligible = [c for c in components if c.type in ENRICHABLE_TYPES and not c.model_name]
 
     if not eligible:
         return 0
@@ -213,9 +212,7 @@ def enrich_components(
                 )
                 for comp, snippet in batch:
                     try:
-                        enriched_count += _enrich_single(
-                            comp, snippet, model, api_key, base_url
-                        )
+                        enriched_count += _enrich_single(comp, snippet, model, api_key, base_url)
                     except Exception:
                         logger.warning(
                             "LLM enrichment failed for %s, skipping",

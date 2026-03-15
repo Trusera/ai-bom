@@ -190,8 +190,7 @@ class ASTScanner(BaseScanner):
 
                     components.append(
                         AIComponent(
-                            name=f"CrewAI {pattern_type}: "
-                            f"{getattr(node, 'name', '?')}",
+                            name=f"CrewAI {pattern_type}: {getattr(node, 'name', '?')}",
                             type=ComponentType.agent_framework,
                             provider="CrewAI",
                             location=SourceLocation(
@@ -227,19 +226,13 @@ class ASTScanner(BaseScanner):
         """Scan imports to find all names that alias crewai.flow.Flow."""
         aliases: set[str] = {_FLOW_CLASS}
         for node in ast.walk(tree):
-            if (
-                isinstance(node, ast.ImportFrom)
-                and node.module
-                and _FLOW_MODULE in node.module
-            ):
+            if isinstance(node, ast.ImportFrom) and node.module and _FLOW_MODULE in node.module:
                 for alias in node.names:
                     if alias.name == _FLOW_CLASS:
                         aliases.add(alias.asname or alias.name)
         return aliases
 
-    def _detect_flow_classes(
-        self, tree: ast.Module, file_path: Path
-    ) -> list[AIComponent]:
+    def _detect_flow_classes(self, tree: ast.Module, file_path: Path) -> list[AIComponent]:
         flow_names = self._collect_flow_aliases(tree)
         components: list[AIComponent] = []
         for node in ast.walk(tree):
@@ -249,7 +242,9 @@ class ASTScanner(BaseScanner):
                 base_name = (
                     _attr_chain(base)
                     if isinstance(base, ast.Attribute)
-                    else base.id if isinstance(base, ast.Name) else ""
+                    else base.id
+                    if isinstance(base, ast.Name)
+                    else ""
                 )
                 if base_name in flow_names or base_name.endswith(f".{_FLOW_CLASS}"):
                     components.append(

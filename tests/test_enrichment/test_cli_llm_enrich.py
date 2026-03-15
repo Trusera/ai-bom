@@ -33,11 +33,16 @@ class TestLLMEnrichCLI:
             return real_import(name, *args, **kwargs)
 
         with patch("builtins.__import__", side_effect=mock_import):
-            result = runner.invoke(app, [
-                "scan", str(tmp_path),
-                "--llm-enrich",
-                "--format", "json",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "scan",
+                    str(tmp_path),
+                    "--llm-enrich",
+                    "--format",
+                    "json",
+                ],
+            )
 
         assert result.exit_code != 0
         assert "LLM enrichment requires litellm" in result.output
@@ -58,11 +63,16 @@ class TestLLMEnrichCLI:
 
         fake_litellm = _make_fake_litellm()
         with patch.dict(sys.modules, {"litellm": fake_litellm}):
-            result = runner.invoke(app, [
-                "scan", str(tmp_path),
-                "--llm-enrich",
-                "--format", "table",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "scan",
+                    str(tmp_path),
+                    "--llm-enrich",
+                    "--format",
+                    "table",
+                ],
+            )
 
         assert result.exit_code == 0
 
@@ -76,11 +86,16 @@ class TestLLMEnrichCLI:
 
         fake_litellm = _make_fake_litellm()
         with patch.dict(sys.modules, {"litellm": fake_litellm}):
-            result = runner.invoke(app, [
-                "scan", str(tmp_path),
-                "--llm-enrich",
-                "--llm-model", "gpt-4o-mini",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "scan",
+                    str(tmp_path),
+                    "--llm-enrich",
+                    "--llm-model",
+                    "gpt-4o-mini",
+                ],
+            )
 
         assert "external API" in result.output or "Warning" in result.output
 
@@ -94,10 +109,15 @@ class TestLLMEnrichCLI:
 
         fake_litellm = _make_fake_litellm()
         with patch.dict(sys.modules, {"litellm": fake_litellm}):
-            result = runner.invoke(app, [
-                "scan", str(tmp_path),
-                "--llm-enrich",
-                "--llm-model", "ollama/llama3",
-            ])
+            result = runner.invoke(
+                app,
+                [
+                    "scan",
+                    str(tmp_path),
+                    "--llm-enrich",
+                    "--llm-model",
+                    "ollama/llama3",
+                ],
+            )
 
         assert "external API" not in result.output

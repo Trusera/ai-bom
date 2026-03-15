@@ -247,15 +247,9 @@ class TestEnrichComponents:
     @patch("ai_bom.enrichment.llm_enricher._call_llm")
     def test_batch_enrichment(self, mock_llm, tmp_path):
         f1 = tmp_path / "app.py"
-        f1.write_text(
-            "from openai import OpenAI\n"
-            'client.chat.completions.create(model="gpt-4o")\n'
-        )
+        f1.write_text('from openai import OpenAI\nclient.chat.completions.create(model="gpt-4o")\n')
         f2 = tmp_path / "bot.py"
-        f2.write_text(
-            "import anthropic\n"
-            'client.messages.create(model="claude-3-opus-20240229")\n'
-        )
+        f2.write_text('import anthropic\nclient.messages.create(model="claude-3-opus-20240229")\n')
         comp1 = _make_component(file_path="app.py", line_number=2, snippet="")
         comp2 = _make_component(
             name="anthropic",
@@ -285,8 +279,11 @@ class TestEnrichComponents:
 
         comp1 = _make_component(file_path="app.py", line_number=1, snippet="")
         comp2 = _make_component(
-            name="anthropic", provider="Anthropic",
-            file_path="bot.py", line_number=1, snippet="",
+            name="anthropic",
+            provider="Anthropic",
+            file_path="bot.py",
+            line_number=1,
+            snippet="",
         )
 
         call_count = 0
@@ -321,7 +318,8 @@ class TestEnrichComponents:
             "print(response)\n"
         )
         comp = _make_component(
-            file_path="app.py", line_number=5,
+            file_path="app.py",
+            line_number=5,
             snippet="from openai import OpenAI",
         )
         mock_llm.return_value = '{"model_name": "gpt-4o", "provider": "OpenAI"}'
