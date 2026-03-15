@@ -1,4 +1,4 @@
-from crewai.flow import Flow, start, listen, router
+from crewai.flow import Flow, listen, router, start
 
 
 class MyFlow(Flow):
