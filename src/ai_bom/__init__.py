@@ -1,5 +1,7 @@
 """AI-BOM: AI Bill of Materials Discovery Scanner by Trusera."""
 
+from ai_bom.sbom_generator import SBOMGenerator
+
 __version__ = "3.4.2"
 
 
