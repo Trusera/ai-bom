@@ -152,10 +152,10 @@ class TruseraClient:
         }
 
         try:
-            response = self._client.post(f"{self.base_url}/api/v1/agents", json=payload)
+            response = self._client.post(f"{self.base_url}/api/v1/agents/register", json=payload)
             response.raise_for_status()
             data = response.json()
-            agent_id = data["id"]
+            agent_id = data["agent"]["id"]
             self.set_agent_id(agent_id)
             logger.info(f"Registered agent '{name}' with ID: {agent_id}")
             return agent_id
