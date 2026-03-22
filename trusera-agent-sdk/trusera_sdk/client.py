@@ -1,6 +1,7 @@
 """Main client for interacting with the Trusera API."""
 
 import atexit
+import hashlib
 import logging
 import os
 import socket
@@ -8,7 +9,7 @@ import sys
 import threading
 import time
 from queue import Empty, Queue
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import httpx
 
@@ -50,6 +51,8 @@ class TruseraClient:
         agent_type: Optional[str] = None,
         environment: Optional[str] = None,
         heartbeat_interval: float = 60.0,
+        on_flush_error: Optional[Callable[[Exception, list], None]] = None,
+        middleware: Optional[list[Callable]] = None,
     ) -> None:
         """
         Initialize the Trusera client.
@@ -67,6 +70,11 @@ class TruseraClient:
             environment: Deployment environment (defaults to TRUSERA_ENVIRONMENT env var)
             heartbeat_interval: Seconds between fleet heartbeats (default 60).
                 Overridden by TRUSERA_HEARTBEAT_INTERVAL env var.
+            on_flush_error: Optional callback invoked on flush failure with
+                ``(exception, events_to_send)`` before re-queuing events.
+            middleware: Optional list of callables applied to each event before
+                queuing. Each callable receives an ``Event`` and must return an
+                ``Event`` or ``None`` (``None`` drops the event).
         """
         if not api_key.startswith("tsk_"):
             logger.warning("API key should start with 'tsk_' prefix")
@@ -89,6 +97,8 @@ class TruseraClient:
         self._environment = environment or os.environ.get("TRUSERA_ENVIRONMENT", "")
         env_hb = os.environ.get("TRUSERA_HEARTBEAT_INTERVAL")
         self._heartbeat_interval = float(env_hb) if env_hb else heartbeat_interval
+        self._on_flush_error = on_flush_error
+        self._middleware = middleware or []
 
         self._queue: Queue[Event] = Queue()
         self._agent_id: Optional[str] = None
@@ -174,8 +184,23 @@ class TruseraClient:
             logger.warning("Client is shutting down, event will not be tracked")
             return
 
-        self._queue.put(event)
-        logger.debug(f"Queued event: {event.type.value} - {event.name}")
+        # Run through middleware chain
+        processed: Optional[Event] = event
+        for mw in self._middleware:
+            if processed is None:
+                break
+            try:
+                processed = mw(processed)
+            except Exception:
+                logger.warning("Middleware raised an exception, dropping event")
+                processed = None
+
+        if processed is None:
+            logger.debug(f"Event dropped by middleware: {event.type.value}")
+            return
+
+        self._queue.put(processed)
+        logger.debug(f"Queued event: {processed.type.value} - {processed.name}")
 
         # Flush immediately if we've hit the batch size
         if self._queue.qsize() >= self.batch_size:
@@ -210,13 +235,26 @@ class TruseraClient:
             "events": [event.to_dict() for event in events_to_send],
         }
 
+        # Generate deterministic idempotency key from event IDs
+        event_ids = sorted(str(e.id) if hasattr(e, 'id') else str(id(e)) for e in events_to_send)
+        idempotency_key = hashlib.sha256("|".join(event_ids).encode()).hexdigest()[:32]
+
         try:
             url = f"{self.base_url}/api/v1/agents/{self._agent_id}/events"
-            response = self._client.post(url, json=payload)
+            response = self._client.post(
+                url,
+                json=payload,
+                headers={"Idempotency-Key": idempotency_key},
+            )
             response.raise_for_status()
             logger.info(f"Flushed {len(events_to_send)} events to Trusera")
         except httpx.HTTPError as e:
             logger.error(f"Failed to flush events: {e}")
+            if self._on_flush_error:
+                try:
+                    self._on_flush_error(e, events_to_send)
+                except Exception:
+                    logger.warning("on_flush_error callback raised an exception")
             # Re-queue events on failure (simple strategy)
             for event in events_to_send:
                 self._queue.put(event)
