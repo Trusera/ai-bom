@@ -208,8 +208,14 @@ class CodeScanner(BaseScanner):
         except Exception:
             return components
         lines = content.splitlines()
+
+        # File-level suppression: any of the first 5 lines contains "# ai-bom: ignore-file".
+        # Only SDK component detection is suppressed -- API key detection always runs.
+        suppress_sdk_file = any("# ai-bom: ignore-file" in ln for ln in lines[:5])
+
         file_seen_sdks: set[str] = set()
         for line_num, line in enumerate(lines, start=1):
+            # API key detection always runs; it cannot be suppressed by inline annotations.
             api_key_results = detect_api_key(line)
             for _, provider, _ in api_key_results:
                 component = AIComponent(
@@ -226,6 +232,12 @@ class CodeScanner(BaseScanner):
                     source="code",
                 )
                 components.append(component)
+
+            # Inline suppression: "# ai-bom: ignore" skips SDK detection on this line only.
+            # File-level "# ai-bom: ignore-file" skips SDK detection for the entire file.
+            if suppress_sdk_file or "# ai-bom: ignore" in line:
+                continue
+
             for pat in LLM_PATTERNS:
                 import_matched = any(re.search(ip, line) for ip in pat.import_patterns)
                 usage_matched = any(re.search(up, line) for up in pat.usage_patterns)
@@ -429,12 +441,16 @@ class CodeScanner(BaseScanner):
 
             lines = content.splitlines()
 
+            # File-level suppression: "# ai-bom: ignore-file" in first 5 lines.
+            # Only SDK component detection is suppressed -- API key detection always runs.
+            suppress_sdk_file = any("# ai-bom: ignore-file" in ln for ln in lines[:5])
+
             # Track seen SDKs in this file for deduplication
             file_seen_sdks: set[str] = set()
 
             # Scan file line by line
             for line_num, line in enumerate(lines, start=1):
-                # Check for API keys
+                # API key detection always runs; it cannot be suppressed by inline annotations.
                 api_key_results = detect_api_key(line)
                 for _, provider, _ in api_key_results:
                     component = AIComponent(
@@ -451,6 +467,11 @@ class CodeScanner(BaseScanner):
                         source="code",
                     )
                     components.append(component)
+
+                # Inline suppression: "# ai-bom: ignore" skips SDK detection on this line only.
+                # File-level "# ai-bom: ignore-file" skips SDK detection for the entire file.
+                if suppress_sdk_file or "# ai-bom: ignore" in line:
+                    continue
 
                 # Check each LLM pattern
                 for llm_pat in LLM_PATTERNS:
