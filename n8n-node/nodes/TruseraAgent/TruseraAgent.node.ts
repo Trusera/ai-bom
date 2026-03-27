@@ -255,7 +255,14 @@ export class TruseraAgent implements INodeType {
         // Build OpenAI function definition from extracted params
         const properties: any = {};
         const required: string[] = [];
-        const toolDesc = (nodeParams.description ?? nodeParams.toolDescription ?? tool.description ?? tool.name ?? 'A tool') as string;
+        // Try multiple keys for description — n8n tools use different param names
+        const toolDesc = (
+          nodeParams.toolDescription ??
+          nodeParams.description ??
+          tool.description ??
+          tool.name ??
+          'A tool'
+        ) as string;
 
         if (fromAiParams.length > 0) {
           for (const param of fromAiParams) {
@@ -321,11 +328,17 @@ export class TruseraAgent implements INodeType {
       }
     }
 
-    const toolDebug = openAiFunctions.map((f: any) => ({
-      name: f.function.name,
-      description: f.function.description?.slice(0, 150),
-      paramKeys: Object.keys(f.function.parameters?.properties ?? {}),
-    }));
+    const toolDebug = openAiFunctions.map((f: any, i: number) => {
+      const tool = connectedTools[i];
+      const ctx = (tool as any)?.context;
+      const nodeP = ctx?.getNode?.()?.parameters;
+      return {
+        name: f.function.name,
+        description: f.function.description?.slice(0, 150),
+        paramKeys: Object.keys(f.function.parameters?.properties ?? {}),
+        nodeParamKeys: nodeP ? Object.keys(nodeP).join(',') : 'no_context',
+      };
+    });
 
     // Bind tools using OpenAI function format
     const modelWithTools = model.bind
