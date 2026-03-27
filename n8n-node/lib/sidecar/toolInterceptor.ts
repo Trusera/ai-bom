@@ -33,9 +33,15 @@ export class TruseraToolInterceptor {
 
     let BaseTool: any;
     try {
-      BaseTool = require('@langchain/core/tools').BaseTool;
+      const mod = require('@langchain/core/tools');
+      BaseTool = mod?.BaseTool;
     } catch {
       // @langchain/core not available — skip installation silently
+      return;
+    }
+
+    if (!BaseTool?.prototype?.invoke) {
+      // BaseTool not available or doesn't have invoke — skip
       return;
     }
 
