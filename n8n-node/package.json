@@ -50,7 +50,8 @@
       "dist/nodes/TruseraPolicy/TruseraPolicy.node.js",
       "dist/nodes/TruseraReport/TruseraReport.node.js",
       "dist/nodes/TruseraSidecar/TruseraSidecar.node.js",
-      "dist/nodes/TruseraSidecarTool/TruseraSidecarTool.node.js"
+      "dist/nodes/TruseraSidecarTool/TruseraSidecarTool.node.js",
+      "dist/nodes/TruseraAgent/TruseraAgent.node.js"
     ]
   },
   "files": [
@@ -70,7 +71,8 @@
   },
   "peerDependencies": {
     "n8n-workflow": ">=1.0.0",
-    "@langchain/core": ">=0.1.0"
+    "@langchain/core": ">=0.1.0",
+    "langchain": ">=0.1.0"
   },
   "overrides": {
     "form-data": ">=4.0.4"
