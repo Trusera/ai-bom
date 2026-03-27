@@ -354,42 +354,40 @@ export class TruseraAgent implements INodeType {
       };
     });
 
-    // Create proper DynamicStructuredTool objects with correct schemas
-    // so that model.bindTools() can extract them properly.
-    let DynamicStructuredTool: any;
+    // Fix tool schemas by mutating them directly on the tool objects.
+    // The tools from getInputConnectionData have empty schema.shape {}.
+    // We rebuild the zod schema from the extracted $fromAI params.
+    // Then model.bindTools() will send correct schemas to OpenAI.
     let z: any;
     try {
-      DynamicStructuredTool = require('@langchain/core/tools').DynamicStructuredTool;
       z = require('zod').z;
-    } catch {
-      // Fallback — use model.bind with raw function defs
+    } catch { /* zod not available */ }
+
+    if (z) {
+      for (let i = 0; i < processedTools.length; i++) {
+        const fn = openAiFunctions[i];
+        const tool = processedTools[i];
+        const existingKeys = tool.schema?.shape ? Object.keys(tool.schema.shape) : [];
+
+        if (existingKeys.length === 0 && fn?.function?.parameters?.properties) {
+          // Rebuild zod schema from extracted params
+          const props: Record<string, any> = {};
+          for (const [key, val] of Object.entries(fn.function.parameters.properties)) {
+            props[key] = z.string().describe((val as any).description ?? '');
+          }
+          tool.schema = z.object(props);
+          // Also fix description
+          if (!tool.description || tool.description === '') {
+            tool.description = fn.function.description;
+          }
+        }
+      }
     }
 
-    let modelWithTools: any;
-    if (DynamicStructuredTool && z && model.bindTools) {
-      // Create proper LangChain tool objects with zod schemas
-      const langchainTools = openAiFunctions.map((fn: any, i: number) => {
-        const props: Record<string, any> = {};
-        for (const [key, val] of Object.entries(fn.function.parameters?.properties ?? {})) {
-          props[key] = z.string().describe((val as any).description ?? '');
-        }
-        return new DynamicStructuredTool({
-          name: fn.function.name,
-          description: fn.function.description,
-          schema: z.object(props),
-          func: async (args: any) => {
-            // This func won't actually be called — we call processedTools directly
-            return JSON.stringify(args);
-          },
-        });
-      });
-      modelWithTools = model.bindTools(langchainTools);
-    } else {
-      // Fallback
-      modelWithTools = model.bind
-        ? model.bind({ tools: openAiFunctions })
-        : model;
-    }
+    // Now bindTools with the fixed tool objects
+    const modelWithTools = model.bindTools
+      ? model.bindTools(processedTools)
+      : model;
 
     // Execute for each input item
     for (let i = 0; i < items.length; i++) {
