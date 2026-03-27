@@ -221,9 +221,14 @@ export class TruseraAgent implements INodeType {
       const schemaKeys = tool.schema?.shape ? Object.keys(tool.schema.shape) : [];
       const parentNode = parentNodes[idx];
 
-      if (schemaKeys.length === 0 && extractFromAICalls && parentNode) {
+      // Try to access the tool's source node parameters
+      // N8nTool has a .context property which is the tool sub-node's execution context
+      const toolContext = (tool as any).context;
+      const toolNodeParams = toolContext?.getNode?.()?.parameters ?? parentNode?.parameters ?? {};
+
+      if (schemaKeys.length === 0 && extractFromAICalls && Object.keys(toolNodeParams).length > 0) {
         // Schema is empty — extract $fromAI params from the raw node config
-        const nodeParams = parentNode.parameters ?? {};
+        const nodeParams = toolNodeParams;
         const fromAiParams: Array<{ key: string; description: string; type: string }> = [];
 
         // Scan all parameter values for $fromAI() calls
