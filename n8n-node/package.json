@@ -1,6 +1,6 @@
 {
   "name": "n8n-nodes-trusera",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "description": "n8n community node for AI security: static scanning + runtime policy enforcement via Trusera",
   "keywords": [
     "n8n-community-node-package",
