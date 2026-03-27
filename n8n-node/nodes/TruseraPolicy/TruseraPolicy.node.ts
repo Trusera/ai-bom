@@ -12,7 +12,7 @@ export class TruseraPolicy implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'Trusera Policy',
     name: 'truseraPolicy',
-    icon: 'file:trusera.svg',
+    icon: 'file:trusera.png',
     group: ['transform'],
     version: 1,
     subtitle: 'Enforce AI security policy',

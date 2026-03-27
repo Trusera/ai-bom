@@ -25,7 +25,7 @@ export class TruseraWebhook implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'Trusera Webhook',
     name: 'truseraWebhook',
-    icon: 'file:trusera.svg',
+    icon: 'file:trusera.png',
     group: ['trigger'],
     version: 1,
     subtitle: 'AI Security Dashboard',

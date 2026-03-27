@@ -13,7 +13,7 @@ export class TruseraSidecar implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'Trusera Sidecar',
     name: 'truseraSidecar',
-    icon: 'file:trusera.svg',
+    icon: 'file:trusera.png',
     group: ['transform'],
     version: 1,
     subtitle: '={{$parameter["enforcementMode"]}} mode',

@@ -12,7 +12,7 @@ export class TruseraScan implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'Trusera Scan',
     name: 'truseraScan',
-    icon: 'file:trusera.svg',
+    icon: 'file:trusera.png',
     group: ['transform'],
     version: 1,
     subtitle: '={{$parameter["operation"]}}',

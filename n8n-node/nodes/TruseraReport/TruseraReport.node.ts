@@ -14,7 +14,7 @@ export class TruseraReport implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'Trusera Report',
     name: 'truseraReport',
-    icon: 'file:trusera.svg',
+    icon: 'file:trusera.png',
     group: ['transform'],
     version: 1,
     subtitle: '={{$parameter["format"]}}',

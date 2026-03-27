@@ -14,7 +14,7 @@ export class TruseraSidecarTool implements INodeType {
   description: INodeTypeDescription = {
     displayName: 'Trusera Sidecar Tool',
     name: 'truseraSidecarTool',
-    icon: 'file:trusera.svg',
+    icon: 'file:trusera.png',
     group: ['transform'],
     version: 1,
     subtitle: 'AI Agent Security Tool',
