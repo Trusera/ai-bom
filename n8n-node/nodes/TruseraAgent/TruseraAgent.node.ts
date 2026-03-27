@@ -166,11 +166,21 @@ export class TruseraAgent implements INodeType {
 
     const reporter = new SidecarReporter(platformUrl, credentials.apiKey, agentName);
 
-    // Get connected LLM — it's already a ChatModel instance from the sub-node
-    const model = (await this.getInputConnectionData(
-      NodeConnectionTypes.AiLanguageModel,
-      0,
-    )) as any;
+    // Get connected LLM
+    let connectedModel: any;
+    try {
+      connectedModel = await this.getInputConnectionData(
+        NodeConnectionTypes.AiLanguageModel,
+        0,
+      );
+    } catch (err: any) {
+      throw new NodeOperationError(this.getNode(), `Failed to get Chat Model: ${err.message}`);
+    }
+
+    // Handle array (n8n may return array of connected models)
+    const model = Array.isArray(connectedModel)
+      ? connectedModel[connectedModel.length - 1]
+      : connectedModel;
 
     if (!model) {
       throw new NodeOperationError(this.getNode(), 'No Chat Model connected');
