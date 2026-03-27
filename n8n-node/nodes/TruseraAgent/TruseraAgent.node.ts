@@ -187,92 +187,142 @@ export class TruseraAgent implements INodeType {
     }
 
     // Get connected tools
-    const rawTools = ((await this.getInputConnectionData(
-      NodeConnectionTypes.AiTool,
-      0,
-    )) ?? []) as any[];
+    let rawToolData: any;
+    try {
+      rawToolData = await this.getInputConnectionData(NodeConnectionTypes.AiTool, 0);
+    } catch {
+      rawToolData = [];
+    }
+    const connectedTools = Array.isArray(rawToolData) ? rawToolData : [rawToolData].filter(Boolean);
 
-    const connectedTools = Array.isArray(rawTools) ? rawTools : [rawTools].filter(Boolean);
+    // ── Fix empty tool schemas ──
+    // n8n's N8nTool objects from $fromAI() tools have empty schemas when
+    // called from custom agent nodes. The $fromAI() expression doesn't
+    // resolve in our context. Fix: extract $fromAI params from the raw
+    // node config of connected tool sub-nodes, and rebuild schemas.
+    let extractFromAICalls: ((str: string) => any[]) | null = null;
+    try {
+      extractFromAICalls = require('n8n-workflow').extractFromAICalls;
+    } catch { /* not available */ }
 
-    // n8n's N8nTool objects often have empty schemas (schema.shape = {})
-    // because the $fromAI() expressions resolve dynamically. When the schema
-    // is empty, bindTools sends a function with zero parameters to OpenAI,
-    // and the LLM returns empty args {}.
-    //
-    // Fix: for tools with empty schemas, convert to DynamicTool via asDynamicTool()
-    // which embeds parameter info in the description string. Then build OpenAI
-    // function definitions manually with a single 'input' string parameter.
+    // Get parent tool node configs to extract $fromAI params
+    const parentNodes = ('getParentNodes' in this)
+      ? (this as any).getParentNodes(this.getNode().name, {
+          connectionType: NodeConnectionTypes.AiTool,
+          depth: 1,
+        })
+      : [];
+
     const processedTools: any[] = [];
     const openAiFunctions: any[] = [];
 
-    for (const tool of connectedTools) {
+    for (let idx = 0; idx < connectedTools.length; idx++) {
+      const tool = connectedTools[idx];
       const schemaKeys = tool.schema?.shape ? Object.keys(tool.schema.shape) : [];
+      const parentNode = parentNodes[idx];
 
-      if (schemaKeys.length === 0 && typeof tool.asDynamicTool === 'function') {
-        // N8nTool with empty schema → convert to DynamicTool
-        const dynamicTool = tool.asDynamicTool();
-        processedTools.push(dynamicTool);
+      if (schemaKeys.length === 0 && extractFromAICalls && parentNode) {
+        // Schema is empty — extract $fromAI params from the raw node config
+        const nodeParams = parentNode.parameters ?? {};
+        const fromAiParams: Array<{ key: string; description: string; type: string }> = [];
 
-        // Build OpenAI function definition with a single 'input' param
+        // Scan all parameter values for $fromAI() calls
+        const scanForFromAI = (obj: any) => {
+          if (typeof obj === 'string' && obj.includes('$fromAI')) {
+            try {
+              const calls = extractFromAICalls!(obj);
+              for (const call of calls) {
+                fromAiParams.push({
+                  key: call.key ?? call[0] ?? 'input',
+                  description: call.description ?? call[1] ?? '',
+                  type: call.type ?? call[2] ?? 'string',
+                });
+              }
+            } catch { /* parse error */ }
+          } else if (typeof obj === 'object' && obj !== null) {
+            for (const val of Object.values(obj)) {
+              scanForFromAI(val);
+            }
+          }
+        };
+        scanForFromAI(nodeParams);
+
+        // Build OpenAI function definition from extracted params
+        const properties: any = {};
+        const required: string[] = [];
+        const toolDesc = (nodeParams.description ?? nodeParams.toolDescription ?? tool.description ?? tool.name ?? 'A tool') as string;
+
+        if (fromAiParams.length > 0) {
+          for (const param of fromAiParams) {
+            properties[param.key] = {
+              type: param.type === 'number' ? 'number' : param.type === 'boolean' ? 'boolean' : 'string',
+              description: param.description,
+            };
+            required.push(param.key);
+          }
+        } else {
+          // Fallback: single input parameter
+          properties.input = {
+            type: 'string',
+            description: 'The input to pass to the tool as a JSON string',
+          };
+          required.push('input');
+        }
+
+        processedTools.push(tool);
         openAiFunctions.push({
           type: 'function',
           function: {
-            name: dynamicTool.name,
-            description: dynamicTool.description || tool.description || 'A tool',
-            parameters: {
-              type: 'object',
-              properties: {
-                input: {
-                  type: 'string',
-                  description: 'The input to pass to the tool. Must be a valid JSON string with the required parameters.',
-                },
-              },
-              required: ['input'],
-            },
+            name: tool.name,
+            description: toolDesc,
+            parameters: { type: 'object', properties, required },
           },
         });
-      } else {
-        // Tool with proper schema → use as-is
+      } else if (schemaKeys.length > 0) {
+        // Tool has proper schema — build function def from it
         processedTools.push(tool);
-
-        // Build function def from zod schema
         const props: any = {};
-        const required: string[] = [];
-        if (tool.schema?.shape) {
-          for (const [key, zodField] of Object.entries(tool.schema.shape)) {
-            props[key] = {
-              type: 'string',
-              description: (zodField as any)?._def?.description ?? '',
-            };
-            if (!(zodField as any)?.isOptional?.()) {
-              required.push(key);
-            }
-          }
+        const req: string[] = [];
+        for (const [key, zodField] of Object.entries(tool.schema.shape)) {
+          props[key] = {
+            type: 'string',
+            description: (zodField as any)?._def?.description ?? '',
+          };
+          if (!(zodField as any)?.isOptional?.()) req.push(key);
         }
-
         openAiFunctions.push({
           type: 'function',
           function: {
             name: tool.name,
             description: tool.description || 'A tool',
+            parameters: { type: 'object', properties: props, required: req },
+          },
+        });
+      } else {
+        // Fallback for unknown tools
+        processedTools.push(tool);
+        openAiFunctions.push({
+          type: 'function',
+          function: {
+            name: tool.name,
+            description: tool.description || tool.name || 'A tool',
             parameters: {
               type: 'object',
-              properties: props,
-              required,
+              properties: { input: { type: 'string', description: 'Tool input' } },
+              required: ['input'],
             },
           },
         });
       }
     }
 
-    const toolDebug = processedTools.map((tool: any) => ({
-      name: tool.name,
-      type: tool.constructor?.name,
-      description: (tool.description ?? '').slice(0, 200),
+    const toolDebug = openAiFunctions.map((f: any) => ({
+      name: f.function.name,
+      description: f.function.description?.slice(0, 150),
+      paramKeys: Object.keys(f.function.parameters?.properties ?? {}),
     }));
 
-    // Bind tools using OpenAI function format (not raw tool objects)
-    // This ensures proper schema is sent to the LLM regardless of tool type.
+    // Bind tools using OpenAI function format
     const modelWithTools = model.bind
       ? model.bind({ tools: openAiFunctions })
       : model;
@@ -385,12 +435,19 @@ export class TruseraAgent implements INodeType {
 
           if (tool) {
             try {
-              // DynamicTool expects a string input; DynamicStructuredTool expects an object.
-              // If args has a single 'input' key (from our OpenAI function def), extract it.
-              let invokeArg: any = toolArgs;
-              if (toolArgs.input && Object.keys(toolArgs).length === 1) {
-                // Single 'input' param → pass the string directly (DynamicTool format)
-                invokeArg = toolArgs.input;
+              // n8n tools (N8nTool/DynamicStructuredTool) expect the invoke arg
+              // to match their schema. For tools with empty schemas (from $fromAI),
+              // pass args as a JSON string — the tool's func/asDynamicTool wrapper
+              // handles parsing internally.
+              let invokeArg: any;
+              const schemaKeys = tool.schema?.shape ? Object.keys(tool.schema.shape) : [];
+
+              if (schemaKeys.length > 0) {
+                // Structured tool — pass object matching schema
+                invokeArg = toolArgs;
+              } else {
+                // Empty schema or DynamicTool — pass JSON string
+                invokeArg = JSON.stringify(toolArgs);
               }
 
               const result = await tool.invoke(invokeArg);
