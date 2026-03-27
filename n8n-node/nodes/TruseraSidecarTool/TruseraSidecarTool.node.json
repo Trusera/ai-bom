@@ -1,0 +1,13 @@
+{
+  "node": "n8n-nodes-trusera.truseraSidecarTool",
+  "nodeVersion": "1.0",
+  "codexVersion": "1.0",
+  "categories": ["AI"],
+  "resources": {
+    "primaryDocumentation": [
+      { "url": "https://docs.trusera.dev/n8n-sidecar-tool" }
+    ]
+  },
+  "alias": ["sidecar", "guard", "policy", "trusera", "ai-tool", "guardrail"],
+  "subcategories": { "AI": ["Security", "Tools"] }
+}

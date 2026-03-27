@@ -1,14 +1,19 @@
 {
   "name": "n8n-nodes-trusera",
-  "version": "0.5.2",
-  "description": "n8n community node to scan workflows for AI security risks using Trusera AI-BOM",
+  "version": "0.6.0",
+  "description": "n8n community node for AI security: static scanning + runtime policy enforcement via Trusera",
   "keywords": [
     "n8n-community-node-package",
     "n8n",
     "ai-security",
     "ai-bom",
     "trusera",
-    "workflow-security"
+    "workflow-security",
+    "cedar",
+    "policy",
+    "sidecar",
+    "runtime",
+    "guardrail"
   ],
   "license": "MIT",
   "homepage": "https://trusera.dev",
@@ -35,14 +40,17 @@
   "n8n": {
     "n8nNodesApiVersion": 1,
     "credentials": [
-      "dist/credentials/TruseraApi.credentials.js"
+      "dist/credentials/TruseraApi.credentials.js",
+      "dist/credentials/TruseraPlatformApi.credentials.js"
     ],
     "nodes": [
       "dist/nodes/TruseraDashboard/TruseraDashboard.node.js",
       "dist/nodes/TruseraWebhook/TruseraWebhook.node.js",
       "dist/nodes/TruseraScan/TruseraScan.node.js",
       "dist/nodes/TruseraPolicy/TruseraPolicy.node.js",
-      "dist/nodes/TruseraReport/TruseraReport.node.js"
+      "dist/nodes/TruseraReport/TruseraReport.node.js",
+      "dist/nodes/TruseraSidecar/TruseraSidecar.node.js",
+      "dist/nodes/TruseraSidecarTool/TruseraSidecarTool.node.js"
     ]
   },
   "files": [
@@ -61,7 +69,8 @@
     "n8n-workflow": "^1.0.0"
   },
   "peerDependencies": {
-    "n8n-workflow": ">=1.0.0"
+    "n8n-workflow": ">=1.0.0",
+    "@langchain/core": ">=0.1.0"
   },
   "overrides": {
     "form-data": ">=4.0.4"
