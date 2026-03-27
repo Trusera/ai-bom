@@ -194,6 +194,11 @@ export class TruseraAgent implements INodeType {
 
     const connectedTools = Array.isArray(rawTools) ? rawTools : [rawTools].filter(Boolean);
 
+    // Debug: log tool details
+    for (const tool of connectedTools) {
+      console.log(`[TruseraAgent] Connected tool: ${tool.name}, type: ${tool.constructor?.name}, hasSchema: ${!!tool.schema}, schemaShape: ${tool.schema?.shape ? Object.keys(tool.schema.shape).join(',') : 'none'}`);
+    }
+
     // Bind tools to the model — pass tool objects directly.
     // LangChain's bindTools() handles schema extraction internally.
     const modelWithTools = model.bindTools
@@ -238,8 +243,16 @@ export class TruseraAgent implements INodeType {
         for (const toolCall of toolCalls) {
           const toolName = toolCall.name ?? toolCall.function?.name ?? 'unknown';
           const toolArgsRaw = toolCall.args ?? toolCall.function?.arguments ?? '{}';
-          const toolArgs = typeof toolArgsRaw === 'string' ? JSON.parse(toolArgsRaw) : toolArgsRaw;
+          let toolArgs: Record<string, unknown>;
+          try {
+            toolArgs = typeof toolArgsRaw === 'string' ? JSON.parse(toolArgsRaw) : (toolArgsRaw ?? {});
+          } catch {
+            toolArgs = { raw: String(toolArgsRaw) };
+          }
           const callId = toolCall.id ?? `call_${iter}`;
+
+          // Debug: log tool call details
+          console.log(`[TruseraAgent] Tool call: ${toolName}, args keys: ${Object.keys(toolArgs).join(',')}, args: ${JSON.stringify(toolArgs).slice(0, 200)}`);
 
           // ── THE KEY: Policy evaluation BEFORE tool execution ──
           const proposal: ToolCallProposal = {
