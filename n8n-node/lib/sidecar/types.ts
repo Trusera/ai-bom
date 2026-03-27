@@ -44,6 +44,9 @@ export enum SidecarEventType {
   PROMPT_INJECTION = 'prompt_injection',
   WORKFLOW_BLOCKED = 'workflow_blocked',
   TOOL_VALIDATION = 'tool_validation',
+  TOOL_CALL_APPROVED = 'tool_call_approved',
+  TOOL_CALL_DENIED = 'tool_call_denied',
+  TOOL_CALL_WARNED = 'tool_call_warned',
 }
 
 /** A single event sent to the platform via /api/v1/events/batch. */
@@ -80,4 +83,46 @@ export interface EvaluatorConfig {
   enablePromptInjection: boolean;
   inlineCedarDsl?: string;
   policyCacheTtlMs: number;
+}
+
+// ── Policy Gate types (v2 — tool-call interception) ──
+
+/** A proposed tool call submitted to the policy gate. */
+export interface ToolCallProposal {
+  toolName: string;
+  toolArgs: Record<string, unknown>;
+  reasoning: string;
+  containsPii: boolean;
+  dataSummary: string;
+}
+
+/** Result of a policy gate evaluation. */
+export interface PolicyGateResult extends EvaluationResult {
+  proposal: ToolCallProposal;
+  brainAnalysis?: BrainAnalysis;
+  policySummaries: string[];
+}
+
+/** Result from the AI-powered brain mode evaluation. */
+export interface BrainAnalysis {
+  decision: 'allow' | 'deny' | 'warn';
+  reasoning: string;
+  confidence: number;
+  flaggedConcerns: string[];
+  durationMs: number;
+}
+
+/** Configuration for brain mode. */
+export interface BrainModeConfig {
+  enabled: boolean;
+  model?: string;
+  maxTokens?: number;
+  temperature?: number;
+}
+
+/** Extended evaluator config for the policy gate. */
+export interface PolicyGateConfig extends EvaluatorConfig {
+  brainMode: BrainModeConfig;
+  brainApiKey?: string;
+  brainBaseUrl?: string;
 }

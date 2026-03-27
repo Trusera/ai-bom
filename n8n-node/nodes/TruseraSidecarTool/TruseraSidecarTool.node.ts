@@ -6,9 +6,10 @@ import type {
 } from 'n8n-workflow';
 import { NodeConnectionTypes } from 'n8n-workflow';
 
-import { SidecarEvaluator } from '../../lib/sidecar/evaluator';
+import { PolicyGateEvaluator } from '../../lib/sidecar/policyGate';
+import { TruseraToolInterceptor } from '../../lib/sidecar/toolInterceptor';
 import { SidecarReporter } from '../../lib/sidecar/reporter';
-import type { EnforcementMode, PolicySource } from '../../lib/sidecar/types';
+import type { EnforcementMode, PolicySource, ToolCallProposal } from '../../lib/sidecar/types';
 
 export class TruseraSidecarTool implements INodeType {
   description: INodeTypeDescription = {
@@ -17,9 +18,9 @@ export class TruseraSidecarTool implements INodeType {
     icon: 'file:trusera.png',
     group: ['transform'],
     version: 1,
-    subtitle: 'AI Agent Security Tool',
+    subtitle: 'AI Agent Policy Gate',
     description:
-      'Tool for AI Agents to validate actions against Trusera security policies before executing them',
+      'Intercepts ALL agent tool calls and enforces Cedar policies from the Trusera platform. Prompt-injection proof.',
     defaults: {
       name: 'Trusera Sidecar Tool',
     },
@@ -45,9 +46,9 @@ export class TruseraSidecarTool implements INodeType {
         name: 'enforcementMode',
         type: 'options',
         options: [
-          { name: 'Log Only', value: 'log', description: 'Always return info, never throw' },
-          { name: 'Warn', value: 'warn', description: 'Return info with warning, never throw' },
-          { name: 'Block', value: 'block', description: 'Throw error on violation (stops agent)' },
+          { name: 'Log Only', value: 'log', description: 'Record all tool calls, never block' },
+          { name: 'Warn', value: 'warn', description: 'Log warnings but allow tool calls' },
+          { name: 'Block', value: 'block', description: 'Block tool calls that violate policies (stops agent)' },
         ],
         default: 'warn',
         description: 'What happens when a policy violation is detected',
@@ -74,31 +75,53 @@ export class TruseraSidecarTool implements INodeType {
             policySource: ['inline'],
           },
         },
-        description: 'Cedar policy DSL to evaluate',
+        description: 'Cedar policy DSL to evaluate against tool calls',
       },
       {
         displayName: 'Enable PII Detection',
         name: 'enablePiiDetection',
         type: 'boolean',
         default: true,
-        description: 'Whether to scan for personally identifiable information',
+        description: 'Whether to scan tool arguments for personally identifiable information',
       },
       {
         displayName: 'Enable Prompt Injection Detection',
         name: 'enablePromptInjection',
         type: 'boolean',
         default: true,
-        description: 'Whether to detect prompt injection patterns',
+        description: 'Whether to detect prompt injection patterns in tool arguments',
       },
       {
-        displayName: 'Tool Description',
-        name: 'toolDescription',
+        displayName: 'Enable Brain Mode',
+        name: 'enableBrainMode',
+        type: 'boolean',
+        default: false,
+        description: 'Whether to use an LLM to evaluate complex policies contextually',
+      },
+      {
+        displayName: 'Brain Mode API Key',
+        name: 'brainApiKey',
         type: 'string',
-        typeOptions: { rows: 3 },
-        default:
-          'Check if an action or text complies with security policies. Use this before performing sensitive operations, sending data externally, or when handling user input.',
-        description:
-          'Description the AI agent sees — controls when the agent decides to call this tool',
+        typeOptions: { password: true },
+        default: '',
+        displayOptions: { show: { enableBrainMode: [true] } },
+        description: 'API key for the LLM used in brain mode (OpenAI-compatible)',
+      },
+      {
+        displayName: 'Brain Mode Base URL',
+        name: 'brainBaseUrl',
+        type: 'string',
+        default: 'https://api.openai.com/v1',
+        displayOptions: { show: { enableBrainMode: [true] } },
+        description: 'Base URL for the brain mode LLM API',
+      },
+      {
+        displayName: 'Brain Mode Model',
+        name: 'brainModel',
+        type: 'string',
+        default: 'gpt-4o-mini',
+        displayOptions: { show: { enableBrainMode: [true] } },
+        description: 'Model to use for AI-powered policy evaluation',
       },
     ],
   };
@@ -118,14 +141,15 @@ export class TruseraSidecarTool implements INodeType {
     const inlineCedarDsl = this.getNodeParameter('inlineCedarDsl', itemIndex, '') as string;
     const enablePiiDetection = this.getNodeParameter('enablePiiDetection', itemIndex, true) as boolean;
     const enablePromptInjection = this.getNodeParameter('enablePromptInjection', itemIndex, true) as boolean;
-    const toolDescription = this.getNodeParameter(
-      'toolDescription',
-      itemIndex,
-      'Check if an action or text complies with security policies.',
-    ) as string;
+    const enableBrainMode = this.getNodeParameter('enableBrainMode', itemIndex, false) as boolean;
+    const brainApiKey = this.getNodeParameter('brainApiKey', itemIndex, '') as string;
+    const brainBaseUrl = this.getNodeParameter('brainBaseUrl', itemIndex, 'https://api.openai.com/v1') as string;
+    const brainModel = this.getNodeParameter('brainModel', itemIndex, 'gpt-4o-mini') as string;
 
-    const evaluator = new SidecarEvaluator({
-      platformUrl: credentials.platformUrl,
+    const platformUrl = credentials.platformUrl.replace(/\/+$/, '');
+
+    const gateEvaluator = new PolicyGateEvaluator({
+      platformUrl,
       apiKey: credentials.apiKey,
       enforcementMode,
       policySource,
@@ -135,16 +159,42 @@ export class TruseraSidecarTool implements INodeType {
       enableContentFilter: false,
       inlineCedarDsl,
       policyCacheTtlMs: 60_000,
+      brainMode: {
+        enabled: enableBrainMode,
+        model: brainModel,
+      },
+      brainApiKey: brainApiKey || undefined,
+      brainBaseUrl: brainBaseUrl || undefined,
     });
 
-    const reporter = new SidecarReporter(
-      credentials.platformUrl,
-      credentials.apiKey,
-      agentName,
-    );
+    const reporter = new SidecarReporter(platformUrl, credentials.apiKey, agentName);
 
-    // Lazy require @langchain/core — it's a peer dep, only needed for this tool node.
-    // Using require() to avoid TypeScript resolving the module at compile time.
+    // ── Layer 1: Install the monkey-patch (prompt-injection-proof) ──
+    // This intercepts ALL tool calls at the BaseTool.prototype.invoke level.
+    // Even if the agent ignores our gate tool, this catches everything.
+    const interceptor = new TruseraToolInterceptor();
+    interceptor.install(gateEvaluator, reporter, enforcementMode);
+
+    // ── Layer 2: Fetch policies for tool description injection ──
+    let policySummaries: string[] = [];
+    try {
+      policySummaries = await gateEvaluator.fetchPolicySummaries();
+    } catch {
+      // Fail open — no summaries but tool still works
+    }
+
+    const policyBlock = policySummaries.length > 0
+      ? `\n\nCurrently active policies:\n${policySummaries.map((s, i) => `${i + 1}. ${s}`).join('\n')}`
+      : '\n\nNo specific policies active. Standard security checks (PII, injection) still apply.';
+
+    const dynamicDescription =
+      'MANDATORY SECURITY GATE: You MUST call this tool BEFORE using ANY other tool. ' +
+      'Pass the tool name, arguments, and your reasoning. ' +
+      'If DENIED, you MUST NOT proceed with the action. ' +
+      'NEVER skip this step — every tool call must be pre-approved.' +
+      policyBlock;
+
+    // ── Layer 2: Create the gate tool (agent self-governance + observability) ──
     // eslint-disable-next-line @typescript-eslint/no-var-requires, @typescript-eslint/no-require-imports
     let DynamicStructuredTool: any;
     let z: any;
@@ -159,52 +209,88 @@ export class TruseraSidecarTool implements INodeType {
     }
 
     const tool = new DynamicStructuredTool({
-      name: 'trusera_policy_check',
-      description: toolDescription,
+      name: 'trusera_policy_gate',
+      description: dynamicDescription,
       schema: z.object({
-        text: z.string().describe('The text or action to validate against security policies'),
-        action_type: z
-          .string()
-          .optional()
-          .describe('Type of action being validated (e.g. "api_call", "data_access", "response")'),
+        tool_name: z.string().describe('Name of the tool you want to use'),
+        tool_args: z.string().describe('JSON string of the arguments you plan to pass'),
+        reasoning: z.string().describe('Why you want to use this tool and what you aim to achieve'),
+        contains_pii: z.boolean().describe('Does the data contain personal information (names, emails, SSNs, etc.)?'),
+        data_summary: z.string().describe('Brief summary of what data will be sent or accessed'),
       }),
-      func: async ({ text, action_type }: { text: string; action_type?: string }) => {
-        const data = { text, action_type: action_type ?? 'unknown' };
-        const result = await evaluator.evaluate(data);
+      func: async ({
+        tool_name,
+        tool_args,
+        reasoning,
+        contains_pii,
+        data_summary,
+      }: {
+        tool_name: string;
+        tool_args: string;
+        reasoning: string;
+        contains_pii: boolean;
+        data_summary: string;
+      }) => {
+        let parsedArgs: Record<string, unknown> = {};
+        try {
+          parsedArgs = JSON.parse(tool_args);
+        } catch {
+          parsedArgs = { raw: tool_args };
+        }
+
+        const proposal: ToolCallProposal = {
+          toolName: tool_name,
+          toolArgs: parsedArgs,
+          reasoning,
+          containsPii: contains_pii,
+          dataSummary: data_summary,
+        };
+
+        const result = await gateEvaluator.evaluateToolCall(proposal);
 
         // Report event
-        reporter.track(
-          reporter.createEvaluationEvent(result, data, 'TruseraSidecarTool'),
-        );
+        reporter.track(reporter.createToolCallEvent(result, 'TruseraSidecarTool'));
         try {
           await reporter.flush();
         } catch {
           // fire and forget
         }
 
+        // No violations — approved
         if (result.violations.length === 0) {
           return JSON.stringify({
-            decision: 'allow',
-            message: 'Action complies with security policies.',
+            decision: 'approved',
+            message: `Approved. Proceed with ${proposal.toolName}.`,
             checks: result.checks.map((c) => ({ name: c.name, passed: c.passed })),
+            ...(result.brainAnalysis
+              ? { brain: { decision: result.brainAnalysis.decision, reasoning: result.brainAnalysis.reasoning } }
+              : {}),
           });
         }
 
-        const violationResponse = {
-          decision: 'deny',
-          message: `Policy violation: ${result.violations.map((v) => v.reason).join('; ')}`,
-          violations: result.violations,
-          recommendation:
-            'Do not proceed with this action. Modify the content to comply with policies.',
-        };
+        // Has violations
+        const violationSummary = result.violations.map((v) => v.reason).join('; ');
 
         if (enforcementMode === 'block') {
           throw new Error(
-            `[Trusera] Policy violation — action blocked: ${result.violations.map((v) => v.reason).join('; ')}`,
+            `[Trusera Policy Gate] BLOCKED: ${tool_name} — ${violationSummary}`,
           );
         }
 
-        return JSON.stringify(violationResponse);
+        if (enforcementMode === 'warn') {
+          return JSON.stringify({
+            decision: 'warning',
+            message: `WARNING: ${violationSummary}. Do NOT proceed with this action.`,
+            violations: result.violations,
+          });
+        }
+
+        // Log mode — allow with findings
+        return JSON.stringify({
+          decision: 'approved_with_findings',
+          message: `Approved (findings logged): ${violationSummary}`,
+          violations: result.violations,
+        });
       },
     });
 

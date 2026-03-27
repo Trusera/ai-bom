@@ -8,7 +8,8 @@
  */
 
 import { randomUUID } from 'crypto';
-import type { SidecarEvent, SidecarEventType, EvaluationResult } from './types';
+import type { SidecarEvent, SidecarEventType, EvaluationResult, PolicyGateResult } from './types';
+import { SidecarEventType as EventType } from './types';
 
 const MAX_QUEUE_SIZE = 10_000;
 const BATCH_SIZE = 100;
@@ -149,6 +150,59 @@ export class SidecarReporter {
       type: result.violations.length > 0
         ? ('policy_evaluation' as SidecarEventType)
         : ('policy_evaluation' as SidecarEventType),
+      agentName: this.agentName,
+      workflowId,
+      nodeName,
+      payload,
+      result: hasViolations ? 'deny' : 'allow',
+      timestamp: result.timestamp,
+    };
+  }
+
+  /** Create a structured event from a policy gate (tool-call) result. */
+  createToolCallEvent(
+    result: PolicyGateResult,
+    nodeName: string,
+    workflowId?: string,
+  ): SidecarEvent {
+    const hasViolations = result.violations.length > 0;
+
+    let eventType: SidecarEventType;
+    if (!hasViolations) {
+      eventType = EventType.TOOL_CALL_APPROVED;
+    } else if (result.enforcement === 'block') {
+      eventType = EventType.TOOL_CALL_DENIED;
+    } else {
+      eventType = EventType.TOOL_CALL_WARNED;
+    }
+
+    const payload: Record<string, unknown> = {
+      agent_name: this.agentName,
+      node_name: nodeName,
+      tool_name: result.proposal.toolName,
+      decision: hasViolations ? 'deny' : 'allow',
+      enforcement_mode: result.enforcement,
+      duration_ms: result.durationMs,
+      violations_count: result.violations.length,
+      violations: result.violations.map((v) => ({ policy: v.policyName, reason: v.reason, severity: v.severity })),
+      checks: Object.fromEntries(
+        result.checks.map((c) => [c.name, { passed: c.passed }]),
+      ),
+    };
+
+    if (result.brainAnalysis) {
+      payload.brain_analysis = {
+        decision: result.brainAnalysis.decision,
+        confidence: result.brainAnalysis.confidence,
+        reasoning: result.brainAnalysis.reasoning.slice(0, 500),
+      };
+    }
+
+    if (workflowId) payload.workflow_id = workflowId;
+
+    return {
+      id: randomUUID(),
+      type: eventType,
       agentName: this.agentName,
       workflowId,
       nodeName,

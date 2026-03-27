@@ -11,3 +11,5 @@ export * from './lib/sidecar/pii';
 export * from './lib/sidecar/contentFilter';
 export * from './lib/sidecar/evaluator';
 export * from './lib/sidecar/reporter';
+export * from './lib/sidecar/policyGate';
+export * from './lib/sidecar/toolInterceptor';
