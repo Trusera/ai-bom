@@ -194,13 +194,23 @@ export class TruseraAgent implements INodeType {
 
     const connectedTools = Array.isArray(rawTools) ? rawTools : [rawTools].filter(Boolean);
 
-    // Debug: log tool details
-    for (const tool of connectedTools) {
-      console.log(`[TruseraAgent] Connected tool: ${tool.name}, type: ${tool.constructor?.name}, hasSchema: ${!!tool.schema}, schemaShape: ${tool.schema?.shape ? Object.keys(tool.schema.shape).join(',') : 'none'}`);
-    }
+    // Inspect tool schemas for debugging
+    const toolDebug = connectedTools.map((tool: any) => ({
+      name: tool.name,
+      type: tool.constructor?.name,
+      hasSchema: !!tool.schema,
+      schemaKeys: tool.schema?.shape ? Object.keys(tool.schema.shape) : [],
+      schemaType: tool.schema?.constructor?.name,
+      description: (tool.description ?? '').slice(0, 100),
+    }));
 
-    // Bind tools to the model — pass tool objects directly.
-    // LangChain's bindTools() handles schema extraction internally.
+    // n8n's getConnectedTools calls getConnectedTools(ctx, true, false)
+    // which keeps N8nTool as-is (doesn't convert to DynamicTool).
+    // createToolCallingAgent then passes these directly to model.bindTools().
+    // The tools must have valid .schema (ZodObject) for bindTools to work.
+    //
+    // If the tools are N8nTool instances, they extend DynamicStructuredTool
+    // and should have .schema already set. bindTools reads .schema automatically.
     const modelWithTools = model.bindTools
       ? model.bindTools(connectedTools)
       : model;
@@ -251,8 +261,15 @@ export class TruseraAgent implements INodeType {
           }
           const callId = toolCall.id ?? `call_${iter}`;
 
-          // Debug: log tool call details
-          console.log(`[TruseraAgent] Tool call: ${toolName}, args keys: ${Object.keys(toolArgs).join(',')}, args: ${JSON.stringify(toolArgs).slice(0, 200)}`);
+          // Debug: capture raw tool call info
+          const rawToolCallDebug = {
+            name: toolCall.name,
+            fnName: toolCall.function?.name,
+            argsType: typeof toolArgsRaw,
+            argsKeys: Object.keys(toolArgs),
+            argsPreview: JSON.stringify(toolArgs).slice(0, 200),
+            callId,
+          };
 
           // ── THE KEY: Policy evaluation BEFORE tool execution ──
           const proposal: ToolCallProposal = {
@@ -327,6 +344,7 @@ export class TruseraAgent implements INodeType {
             input: toolArgs,
             output: toolResult.slice(0, 1000),
             blocked: false,
+            debug: rawToolCallDebug,
           });
         }
 
@@ -345,6 +363,7 @@ export class TruseraAgent implements INodeType {
               enforcement: enforcementMode,
               decision: 'blocked',
               reason: blockReason,
+              toolDebug,
             },
           },
           pairedItem: { item: i },
@@ -360,6 +379,7 @@ export class TruseraAgent implements INodeType {
               enforcement: enforcementMode,
               decision: 'allowed',
               toolCallsTotal: intermediateSteps.length,
+              toolDebug,
             },
           },
           pairedItem: { item: i },
