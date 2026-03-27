@@ -256,13 +256,20 @@ export class TruseraAgent implements INodeType {
         const properties: any = {};
         const required: string[] = [];
         // Try multiple keys for description — n8n tools use different param names
-        const toolDesc = (
+        // Also generate a meaningful description from the tool name if nothing found
+        let toolDesc = (
           nodeParams.toolDescription ??
           nodeParams.description ??
           tool.description ??
-          tool.name ??
-          'A tool'
+          ''
         ) as string;
+
+        if (!toolDesc || toolDesc === 'empty') {
+          // Generate description from tool name: "HTTP_Request_Tool" → "HTTP Request Tool - Make HTTP requests"
+          const humanName = (tool.name ?? 'Tool').replace(/_/g, ' ');
+          const paramList = fromAiParams.map((p) => `${p.key} (${p.description || p.type})`).join(', ');
+          toolDesc = `${humanName}. Parameters: ${paramList || 'none'}`;
+        }
 
         if (fromAiParams.length > 0) {
           for (const param of fromAiParams) {
