@@ -354,10 +354,42 @@ export class TruseraAgent implements INodeType {
       };
     });
 
-    // Bind tools using OpenAI function format with tool_choice: auto
-    const modelWithTools = model.bind
-      ? model.bind({ tools: openAiFunctions, tool_choice: 'auto' })
-      : model;
+    // Create proper DynamicStructuredTool objects with correct schemas
+    // so that model.bindTools() can extract them properly.
+    let DynamicStructuredTool: any;
+    let z: any;
+    try {
+      DynamicStructuredTool = require('@langchain/core/tools').DynamicStructuredTool;
+      z = require('zod').z;
+    } catch {
+      // Fallback — use model.bind with raw function defs
+    }
+
+    let modelWithTools: any;
+    if (DynamicStructuredTool && z && model.bindTools) {
+      // Create proper LangChain tool objects with zod schemas
+      const langchainTools = openAiFunctions.map((fn: any, i: number) => {
+        const props: Record<string, any> = {};
+        for (const [key, val] of Object.entries(fn.function.parameters?.properties ?? {})) {
+          props[key] = z.string().describe((val as any).description ?? '');
+        }
+        return new DynamicStructuredTool({
+          name: fn.function.name,
+          description: fn.function.description,
+          schema: z.object(props),
+          func: async (args: any) => {
+            // This func won't actually be called — we call processedTools directly
+            return JSON.stringify(args);
+          },
+        });
+      });
+      modelWithTools = model.bindTools(langchainTools);
+    } else {
+      // Fallback
+      modelWithTools = model.bind
+        ? model.bind({ tools: openAiFunctions })
+        : model;
+    }
 
     // Execute for each input item
     for (let i = 0; i < items.length; i++) {
