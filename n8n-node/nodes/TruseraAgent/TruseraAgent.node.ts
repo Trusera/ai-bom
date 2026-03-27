@@ -256,13 +256,20 @@ export class TruseraAgent implements INodeType {
         const properties: any = {};
         const required: string[] = [];
         // Try multiple keys for description — n8n tools use different param names
-        // Also generate a meaningful description from the tool name if nothing found
+        // nodeParams values might be objects ({__rl, value}) or strings
+        const getParamStr = (val: any): string => {
+          if (!val) return '';
+          if (typeof val === 'string') return val;
+          if (typeof val === 'object' && val.value) return String(val.value);
+          return String(val);
+        };
+
         let toolDesc = (
-          nodeParams.toolDescription ??
-          nodeParams.description ??
-          tool.description ??
+          getParamStr(nodeParams.toolDescription) ||
+          getParamStr(nodeParams.description) ||
+          tool.description ||
           ''
-        ) as string;
+        );
 
         if (!toolDesc || toolDesc === 'empty') {
           // Generate description from tool name: "HTTP_Request_Tool" → "HTTP Request Tool - Make HTTP requests"
@@ -347,9 +354,9 @@ export class TruseraAgent implements INodeType {
       };
     });
 
-    // Bind tools using OpenAI function format
+    // Bind tools using OpenAI function format with tool_choice: auto
     const modelWithTools = model.bind
-      ? model.bind({ tools: openAiFunctions })
+      ? model.bind({ tools: openAiFunctions, tool_choice: 'auto' })
       : model;
 
     // Execute for each input item
