@@ -194,22 +194,11 @@ export class TruseraAgent implements INodeType {
 
     const connectedTools = Array.isArray(rawTools) ? rawTools : [rawTools].filter(Boolean);
 
-    // Build tool schemas for the LLM (bindTools format)
-    const toolSchemas = connectedTools.map((tool: any) => ({
-      type: 'function' as const,
-      function: {
-        name: tool.name,
-        description: tool.description ?? '',
-        parameters: tool.schema
-          ? (typeof tool.schema.jsonSchema === 'function' ? tool.schema.jsonSchema() : tool.schema)
-          : { type: 'object', properties: {} },
-      },
-    }));
-
-    // Bind tools to the model so it can decide to call them
+    // Bind tools to the model — pass tool objects directly.
+    // LangChain's bindTools() handles schema extraction internally.
     const modelWithTools = model.bindTools
-      ? model.bindTools(toolSchemas)
-      : model.bind({ tools: toolSchemas });
+      ? model.bindTools(connectedTools)
+      : model;
 
     // Execute for each input item
     for (let i = 0; i < items.length; i++) {
