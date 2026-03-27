@@ -134,27 +134,6 @@ export class TruseraAgent implements INodeType {
     const items = this.getInputData();
     const returnData: INodeExecutionData[] = [];
 
-    // Lazy-require LangChain (peer deps, available in n8n)
-    let createToolCallingAgent: any;
-    let AgentExecutor: any;
-    let ChatPromptTemplate: any;
-    let AIMessage: any;
-    let HumanMessage: any;
-    let SystemMessage: any;
-    try {
-      createToolCallingAgent = require('langchain/agents').createToolCallingAgent;
-      AgentExecutor = require('langchain/agents').AgentExecutor;
-      ChatPromptTemplate = require('@langchain/core/prompts').ChatPromptTemplate;
-      AIMessage = require('@langchain/core/messages').AIMessage;
-      HumanMessage = require('@langchain/core/messages').HumanMessage;
-      SystemMessage = require('@langchain/core/messages').SystemMessage;
-    } catch {
-      throw new NodeOperationError(
-        this.getNode(),
-        'Trusera Agent requires langchain and @langchain/core. Make sure n8n AI features are installed.',
-      );
-    }
-
     // Get credentials and parameters
     const credentials = (await this.getCredentials('truseraPlatformApi')) as {
       apiKey: string;
@@ -187,7 +166,7 @@ export class TruseraAgent implements INodeType {
 
     const reporter = new SidecarReporter(platformUrl, credentials.apiKey, agentName);
 
-    // Get connected LLM
+    // Get connected LLM — it's already a ChatModel instance from the sub-node
     const model = (await this.getInputConnectionData(
       NodeConnectionTypes.AiLanguageModel,
       0,
@@ -195,14 +174,6 @@ export class TruseraAgent implements INodeType {
 
     if (!model) {
       throw new NodeOperationError(this.getNode(), 'No Chat Model connected');
-    }
-
-    // Get connected memory (optional)
-    let memory: any;
-    try {
-      memory = await this.getInputConnectionData(NodeConnectionTypes.AiMemory, 0);
-    } catch {
-      // No memory connected — that's fine
     }
 
     // Get connected tools
@@ -213,129 +184,178 @@ export class TruseraAgent implements INodeType {
 
     const connectedTools = Array.isArray(rawTools) ? rawTools : [rawTools].filter(Boolean);
 
-    // ── THE KEY: Wrap every tool with policy enforcement ──
-    // This happens at the code level — no prompt injection can bypass it.
-    const wrappedTools = connectedTools.map((tool: any) => {
-      const originalInvoke = tool.invoke.bind(tool);
-      const toolName = tool.name ?? 'unknown';
+    // Build tool schemas for the LLM (bindTools format)
+    const toolSchemas = connectedTools.map((tool: any) => ({
+      type: 'function' as const,
+      function: {
+        name: tool.name,
+        description: tool.description ?? '',
+        parameters: tool.schema
+          ? (typeof tool.schema.jsonSchema === 'function' ? tool.schema.jsonSchema() : tool.schema)
+          : { type: 'object', properties: {} },
+      },
+    }));
 
-      tool.invoke = async (input: any, config?: any) => {
-        // Build proposal from the tool call
-        const toolArgs: Record<string, unknown> =
-          typeof input === 'object' && input !== null
-            ? (input as Record<string, unknown>)
-            : { raw: String(input) };
-
-        const proposal: ToolCallProposal = {
-          toolName,
-          toolArgs,
-          reasoning: '',
-          containsPii: false,
-          dataSummary: JSON.stringify(toolArgs).slice(0, 500),
-        };
-
-        // Evaluate against policies
-        const result = await gateEvaluator.evaluateToolCall(proposal);
-
-        // Report event
-        reporter.track(reporter.createToolCallEvent(result, 'TruseraAgent'));
-        reporter.flush().catch(() => {});
-
-        // Enforce
-        if (result.violations.length > 0) {
-          const reasons = result.violations.map((v) => v.reason).join('; ');
-
-          if (enforcementMode === 'block') {
-            throw new Error(`[Trusera] BLOCKED: ${toolName} — ${reasons}`);
-          }
-          if (enforcementMode === 'warn') {
-            console.warn(`[Trusera] WARNING on ${toolName}: ${reasons}`);
-          }
-        }
-
-        // Call the original tool
-        return originalInvoke(input, config);
-      };
-
-      return tool;
-    });
-
-    // Build prompt
-    const prompt = ChatPromptTemplate.fromMessages([
-      ['system', systemMessage],
-      ['placeholder', '{chat_history}'],
-      ['human', '{input}'],
-      ['placeholder', '{agent_scratchpad}'],
-    ]);
-
-    // Create agent
-    const agent = createToolCallingAgent({
-      llm: model,
-      tools: wrappedTools,
-      prompt,
-      streamRunnable: false,
-    });
-
-    const executor = new AgentExecutor({
-      agent,
-      tools: wrappedTools,
-      maxIterations,
-      returnIntermediateSteps: true,
-      ...(memory ? { memory } : {}),
-    });
+    // Bind tools to the model so it can decide to call them
+    const modelWithTools = model.bindTools
+      ? model.bindTools(toolSchemas)
+      : model.bind({ tools: toolSchemas });
 
     // Execute for each input item
     for (let i = 0; i < items.length; i++) {
       const text = this.getNodeParameter('text', i, '') as string;
 
-      try {
-        const result = await executor.invoke({
-          input: text,
-          chat_history: [],
-        });
+      const messages: any[] = [
+        { role: 'system', content: systemMessage },
+        { role: 'user', content: text },
+      ];
 
+      const intermediateSteps: any[] = [];
+      let finalOutput = '';
+      let blocked = false;
+      let blockReason = '';
+
+      // ── Manual ReAct Agent Loop ──
+      // We control this loop, so we control tool execution.
+      for (let iter = 0; iter < maxIterations; iter++) {
+        // Call the LLM
+        const response = await modelWithTools.invoke(messages);
+
+        // Check if the LLM wants to call tools
+        const toolCalls = response.tool_calls ?? response.additional_kwargs?.tool_calls ?? [];
+
+        if (!toolCalls || toolCalls.length === 0) {
+          // No tool calls — LLM gave a final answer
+          finalOutput = typeof response.content === 'string'
+            ? response.content
+            : JSON.stringify(response.content);
+          break;
+        }
+
+        // Add assistant message to history
+        messages.push(response);
+
+        // Process each tool call
+        for (const toolCall of toolCalls) {
+          const toolName = toolCall.name ?? toolCall.function?.name ?? 'unknown';
+          const toolArgsRaw = toolCall.args ?? toolCall.function?.arguments ?? '{}';
+          const toolArgs = typeof toolArgsRaw === 'string' ? JSON.parse(toolArgsRaw) : toolArgsRaw;
+          const callId = toolCall.id ?? `call_${iter}`;
+
+          // ── THE KEY: Policy evaluation BEFORE tool execution ──
+          const proposal: ToolCallProposal = {
+            toolName,
+            toolArgs,
+            reasoning: '',
+            containsPii: false,
+            dataSummary: JSON.stringify(toolArgs).slice(0, 500),
+          };
+
+          const policyResult = await gateEvaluator.evaluateToolCall(proposal);
+
+          // Report event
+          reporter.track(reporter.createToolCallEvent(policyResult, 'TruseraAgent'));
+
+          if (policyResult.violations.length > 0) {
+            const reasons = policyResult.violations.map((v) => v.reason).join('; ');
+
+            if (enforcementMode === 'block') {
+              blocked = true;
+              blockReason = `[Trusera] BLOCKED: ${toolName} — ${reasons}`;
+
+              // Send error as tool result so the agent knows
+              messages.push({
+                role: 'tool',
+                content: `POLICY VIOLATION — THIS TOOL CALL WAS BLOCKED: ${reasons}. Do NOT retry this action.`,
+                tool_call_id: callId,
+              });
+
+              intermediateSteps.push({
+                tool: toolName,
+                input: toolArgs,
+                output: `BLOCKED: ${reasons}`,
+                blocked: true,
+              });
+
+              // Break out of the agent loop
+              break;
+            }
+
+            if (enforcementMode === 'warn') {
+              console.warn(`[Trusera] WARNING on ${toolName}: ${reasons}`);
+            }
+          }
+
+          if (blocked) break;
+
+          // ── Policy approved — execute the actual tool ──
+          const tool = connectedTools.find((t: any) => t.name === toolName);
+          let toolResult = '';
+
+          if (tool) {
+            try {
+              const result = await tool.invoke(toolArgs);
+              toolResult = typeof result === 'string' ? result : JSON.stringify(result);
+            } catch (err: any) {
+              toolResult = `Error: ${err.message}`;
+            }
+          } else {
+            toolResult = `Tool '${toolName}' not found`;
+          }
+
+          // Add tool result to messages
+          messages.push({
+            role: 'tool',
+            content: toolResult,
+            tool_call_id: callId,
+          });
+
+          intermediateSteps.push({
+            tool: toolName,
+            input: toolArgs,
+            output: toolResult.slice(0, 1000),
+            blocked: false,
+          });
+        }
+
+        if (blocked) break;
+      }
+
+      // Build output
+      if (blocked) {
         returnData.push({
           json: {
-            output: result.output,
-            intermediateSteps: result.intermediateSteps?.map((step: any) => ({
-              tool: step.action?.tool,
-              input: step.action?.toolInput,
-              output: typeof step.observation === 'string'
-                ? step.observation.slice(0, 1000)
-                : step.observation,
-            })),
+            output: blockReason,
+            blocked: true,
+            intermediateSteps,
             _trusera: {
               agentName,
               enforcement: enforcementMode,
-              toolCallsTotal: result.intermediateSteps?.length ?? 0,
+              decision: 'blocked',
+              reason: blockReason,
             },
           },
           pairedItem: { item: i },
         });
-      } catch (error: any) {
-        // If the error is from our policy gate, include violation details
-        if (error.message?.includes('[Trusera]')) {
-          returnData.push({
-            json: {
-              output: null,
-              error: error.message,
-              blocked: true,
-              _trusera: {
-                agentName,
-                enforcement: enforcementMode,
-                decision: 'blocked',
-                reason: error.message,
-              },
+      } else {
+        returnData.push({
+          json: {
+            output: finalOutput,
+            blocked: false,
+            intermediateSteps,
+            _trusera: {
+              agentName,
+              enforcement: enforcementMode,
+              decision: 'allowed',
+              toolCallsTotal: intermediateSteps.length,
             },
-            pairedItem: { item: i },
-          });
-        } else {
-          throw error;
-        }
+          },
+          pairedItem: { item: i },
+        });
       }
     }
 
-    // Final flush of events
+    // Final flush
     try {
       await reporter.flush();
     } catch {
