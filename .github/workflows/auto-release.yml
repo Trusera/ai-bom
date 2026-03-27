@@ -314,6 +314,6 @@ jobs:
 
       - name: Build & publish to npm
         if: steps.bump.outputs.skip != 'true'
-        run: cd n8n-node && npm ci && npm run build && npm publish --access public
+        run: cd n8n-node && npm install && npm run build && npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM }}
