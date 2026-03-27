@@ -194,25 +194,87 @@ export class TruseraAgent implements INodeType {
 
     const connectedTools = Array.isArray(rawTools) ? rawTools : [rawTools].filter(Boolean);
 
-    // Inspect tool schemas for debugging
-    const toolDebug = connectedTools.map((tool: any) => ({
+    // n8n's N8nTool objects often have empty schemas (schema.shape = {})
+    // because the $fromAI() expressions resolve dynamically. When the schema
+    // is empty, bindTools sends a function with zero parameters to OpenAI,
+    // and the LLM returns empty args {}.
+    //
+    // Fix: for tools with empty schemas, convert to DynamicTool via asDynamicTool()
+    // which embeds parameter info in the description string. Then build OpenAI
+    // function definitions manually with a single 'input' string parameter.
+    const processedTools: any[] = [];
+    const openAiFunctions: any[] = [];
+
+    for (const tool of connectedTools) {
+      const schemaKeys = tool.schema?.shape ? Object.keys(tool.schema.shape) : [];
+
+      if (schemaKeys.length === 0 && typeof tool.asDynamicTool === 'function') {
+        // N8nTool with empty schema → convert to DynamicTool
+        const dynamicTool = tool.asDynamicTool();
+        processedTools.push(dynamicTool);
+
+        // Build OpenAI function definition with a single 'input' param
+        openAiFunctions.push({
+          type: 'function',
+          function: {
+            name: dynamicTool.name,
+            description: dynamicTool.description || tool.description || 'A tool',
+            parameters: {
+              type: 'object',
+              properties: {
+                input: {
+                  type: 'string',
+                  description: 'The input to pass to the tool. Must be a valid JSON string with the required parameters.',
+                },
+              },
+              required: ['input'],
+            },
+          },
+        });
+      } else {
+        // Tool with proper schema → use as-is
+        processedTools.push(tool);
+
+        // Build function def from zod schema
+        const props: any = {};
+        const required: string[] = [];
+        if (tool.schema?.shape) {
+          for (const [key, zodField] of Object.entries(tool.schema.shape)) {
+            props[key] = {
+              type: 'string',
+              description: (zodField as any)?._def?.description ?? '',
+            };
+            if (!(zodField as any)?.isOptional?.()) {
+              required.push(key);
+            }
+          }
+        }
+
+        openAiFunctions.push({
+          type: 'function',
+          function: {
+            name: tool.name,
+            description: tool.description || 'A tool',
+            parameters: {
+              type: 'object',
+              properties: props,
+              required,
+            },
+          },
+        });
+      }
+    }
+
+    const toolDebug = processedTools.map((tool: any) => ({
       name: tool.name,
       type: tool.constructor?.name,
-      hasSchema: !!tool.schema,
-      schemaKeys: tool.schema?.shape ? Object.keys(tool.schema.shape) : [],
-      schemaType: tool.schema?.constructor?.name,
-      description: (tool.description ?? '').slice(0, 100),
+      description: (tool.description ?? '').slice(0, 200),
     }));
 
-    // n8n's getConnectedTools calls getConnectedTools(ctx, true, false)
-    // which keeps N8nTool as-is (doesn't convert to DynamicTool).
-    // createToolCallingAgent then passes these directly to model.bindTools().
-    // The tools must have valid .schema (ZodObject) for bindTools to work.
-    //
-    // If the tools are N8nTool instances, they extend DynamicStructuredTool
-    // and should have .schema already set. bindTools reads .schema automatically.
-    const modelWithTools = model.bindTools
-      ? model.bindTools(connectedTools)
+    // Bind tools using OpenAI function format (not raw tool objects)
+    // This ensures proper schema is sent to the LLM regardless of tool type.
+    const modelWithTools = model.bind
+      ? model.bind({ tools: openAiFunctions })
       : model;
 
     // Execute for each input item
@@ -318,12 +380,20 @@ export class TruseraAgent implements INodeType {
           if (blocked) break;
 
           // ── Policy approved — execute the actual tool ──
-          const tool = connectedTools.find((t: any) => t.name === toolName);
+          const tool = processedTools.find((t: any) => t.name === toolName);
           let toolResult = '';
 
           if (tool) {
             try {
-              const result = await tool.invoke(toolArgs);
+              // DynamicTool expects a string input; DynamicStructuredTool expects an object.
+              // If args has a single 'input' key (from our OpenAI function def), extract it.
+              let invokeArg: any = toolArgs;
+              if (toolArgs.input && Object.keys(toolArgs).length === 1) {
+                // Single 'input' param → pass the string directly (DynamicTool format)
+                invokeArg = toolArgs.input;
+              }
+
+              const result = await tool.invoke(invokeArg);
               toolResult = typeof result === 'string' ? result : JSON.stringify(result);
             } catch (err: any) {
               toolResult = `Error: ${err.message}`;
