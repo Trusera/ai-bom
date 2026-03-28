@@ -121,6 +121,38 @@ export class TruseraAgent implements INodeType {
         description: 'Whether to detect prompt injection in tool arguments',
       },
       {
+        displayName: 'Enable Brain Mode',
+        name: 'enableBrainMode',
+        type: 'boolean',
+        default: false,
+        description: 'Whether to use an LLM to evaluate complex policies contextually (adds ~1s per tool call)',
+      },
+      {
+        displayName: 'Brain Mode API Key',
+        name: 'brainApiKey',
+        type: 'string',
+        typeOptions: { password: true },
+        default: '',
+        displayOptions: { show: { enableBrainMode: [true] } },
+        description: 'API key for the brain mode LLM (OpenAI-compatible)',
+      },
+      {
+        displayName: 'Brain Mode Base URL',
+        name: 'brainBaseUrl',
+        type: 'string',
+        default: 'https://api.openai.com/v1',
+        displayOptions: { show: { enableBrainMode: [true] } },
+        description: 'Base URL for the brain mode LLM API',
+      },
+      {
+        displayName: 'Brain Mode Model',
+        name: 'brainModel',
+        type: 'string',
+        default: 'gpt-4o-mini',
+        displayOptions: { show: { enableBrainMode: [true] } },
+        description: 'Model for AI-powered policy evaluation',
+      },
+      {
         displayName: 'Max Iterations',
         name: 'maxIterations',
         type: 'number',
@@ -146,6 +178,10 @@ export class TruseraAgent implements INodeType {
     const inlineCedarDsl = this.getNodeParameter('inlineCedarDsl', 0, '') as string;
     const enablePiiDetection = this.getNodeParameter('enablePiiDetection', 0, true) as boolean;
     const enablePromptInjection = this.getNodeParameter('enablePromptInjection', 0, true) as boolean;
+    const enableBrainMode = this.getNodeParameter('enableBrainMode', 0, false) as boolean;
+    const brainApiKey = this.getNodeParameter('brainApiKey', 0, '') as string;
+    const brainBaseUrl = this.getNodeParameter('brainBaseUrl', 0, 'https://api.openai.com/v1') as string;
+    const brainModel = this.getNodeParameter('brainModel', 0, 'gpt-4o-mini') as string;
     const maxIterations = this.getNodeParameter('maxIterations', 0, 10) as number;
     const platformUrl = credentials.platformUrl.replace(/\/+$/, '');
 
@@ -161,7 +197,12 @@ export class TruseraAgent implements INodeType {
       enableContentFilter: false,
       inlineCedarDsl,
       policyCacheTtlMs: 60_000,
-      brainMode: { enabled: false },
+      brainMode: {
+        enabled: enableBrainMode,
+        model: brainModel,
+      },
+      brainApiKey: brainApiKey || undefined,
+      brainBaseUrl: brainBaseUrl || undefined,
     });
 
     const reporter = new SidecarReporter(platformUrl, credentials.apiKey, agentName);
@@ -478,6 +519,12 @@ export class TruseraAgent implements INodeType {
                 input: toolArgs,
                 output: `BLOCKED: ${reasons}`,
                 blocked: true,
+                brainAnalysis: policyResult.brainAnalysis ? {
+                  decision: policyResult.brainAnalysis.decision,
+                  reasoning: policyResult.brainAnalysis.reasoning,
+                  confidence: policyResult.brainAnalysis.confidence,
+                  flaggedConcerns: policyResult.brainAnalysis.flaggedConcerns,
+                } : undefined,
               });
 
               // Break out of the agent loop
@@ -533,7 +580,12 @@ export class TruseraAgent implements INodeType {
             input: toolArgs,
             output: toolResult.slice(0, 1000),
             blocked: false,
-            debug: rawToolCallDebug,
+            brainAnalysis: policyResult.brainAnalysis ? {
+              decision: policyResult.brainAnalysis.decision,
+              reasoning: policyResult.brainAnalysis.reasoning,
+              confidence: policyResult.brainAnalysis.confidence,
+              flaggedConcerns: policyResult.brainAnalysis.flaggedConcerns,
+            } : undefined,
           });
         }
 
