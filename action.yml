@@ -93,7 +93,7 @@ runs:
 
     - name: Upload SARIF to GitHub Code Scanning
       if: ${{ inputs.format == 'sarif' && (steps.scan.outputs.sarif_file != '' || inputs.output != '') }}
-      uses: github/codeql-action/upload-sarif@v4
+      uses: github/codeql-action/upload-sarif@v4.35.1
       with:
         sarif_file: ${{ steps.scan.outputs.sarif_file || inputs.output }}
 
