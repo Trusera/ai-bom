@@ -293,6 +293,110 @@ class TestComponentTypeMapping:
         assert comp_type == ComponentType.llm_provider
 
 
+class TestInlineSuppression:
+    """Tests for # ai-bom: ignore and # ai-bom: ignore-file suppression annotations.
+
+    These annotations let developers mark intentional AI usage so the scanner
+    skips those lines or files, eliminating false positives without excluding
+    entire directory subtrees via .ai-bomignore.
+
+    Syntax:
+      - ``# ai-bom: ignore``       -- place at end of any line; skips that line only
+      - ``# ai-bom: ignore-file``  -- place in first 5 lines; skips the entire file
+    """
+
+    def test_inline_ignore_suppresses_sdk_detection(self, scanner, tmp_path):
+        """A line tagged with # ai-bom: ignore should not produce any component."""
+        f = tmp_path / "app.py"
+        f.write_text("import openai  # ai-bom: ignore\n")
+        components = scanner.scan(tmp_path)
+        assert not any("openai" in c.name.lower() for c in components)
+
+    def test_inline_ignore_only_suppresses_tagged_line(self, scanner, tmp_path):
+        """Untagged lines in the same file are still detected normally."""
+        f = tmp_path / "app.py"
+        f.write_text(
+            "import openai  # ai-bom: ignore\n"
+            "import anthropic\n"
+        )
+        components = scanner.scan(tmp_path)
+        names_lower = [c.name.lower() for c in components]
+        assert not any("openai" in n for n in names_lower), "suppressed openai should not appear"
+        assert any("anthropic" in n for n in names_lower), "unsuppressed anthropic should appear"
+
+    def test_inline_ignore_does_not_suppress_hardcoded_api_key(self, scanner, tmp_path):
+        """# ai-bom: ignore suppresses SDK detection but NEVER suppresses API key findings.
+
+        Security findings (hardcoded_api_key) are unconditional -- they fire regardless
+        of any suppression annotation.  A developer annotating an import as intentional
+        must not inadvertently silence a credential leak on the same line.
+        """
+        f = tmp_path / "app.py"
+        f.write_text(
+            'API_KEY = "sk-test1234567890abcdefghijklmnopqrstuvwxyz"  # ai-bom: ignore\n'
+        )
+        components = scanner.scan(tmp_path)
+        # The hardcoded key MUST still be reported even though the line is annotated
+        assert any("hardcoded_api_key" in c.flags for c in components)
+
+    def test_ignore_file_does_not_suppress_hardcoded_api_key(self, scanner, tmp_path):
+        """# ai-bom: ignore-file suppresses SDK detection but NEVER suppresses API key findings."""
+        f = tmp_path / "app.py"
+        f.write_text(
+            "# ai-bom: ignore-file\n"
+            'API_KEY = "sk-test1234567890abcdefghijklmnopqrstuvwxyz"\n'
+        )
+        components = scanner.scan(tmp_path)
+        assert any("hardcoded_api_key" in c.flags for c in components)
+
+    def test_ignore_file_annotation_suppresses_entire_file(self, scanner, tmp_path):
+        """# ai-bom: ignore-file in the first 5 lines causes the whole file to be skipped."""
+        f = tmp_path / "app.py"
+        f.write_text(
+            "# ai-bom: ignore-file\n"
+            "import openai\n"
+            "import anthropic\n"
+            "from langchain import LangChain\n"
+        )
+        components = scanner.scan(tmp_path)
+        assert components == [], "file-level suppression should produce zero components"
+
+    def test_ignore_file_works_within_first_five_lines(self, scanner, tmp_path):
+        """# ai-bom: ignore-file is honoured when placed on lines 2-5, not just line 1."""
+        f = tmp_path / "app.py"
+        f.write_text(
+            '"""Module docstring."""\n'
+            "# ai-bom: ignore-file\n"
+            "import openai\n"
+        )
+        components = scanner.scan(tmp_path)
+        assert components == []
+
+    def test_ignore_file_after_line_five_is_not_honoured(self, scanner, tmp_path):
+        """# ai-bom: ignore-file placed after line 5 should NOT suppress the file."""
+        f = tmp_path / "app.py"
+        f.write_text(
+            "# line 1\n"
+            "# line 2\n"
+            "# line 3\n"
+            "# line 4\n"
+            "# line 5\n"
+            "# ai-bom: ignore-file\n"  # line 6 -- too late
+            "import openai\n"
+        )
+        components = scanner.scan(tmp_path)
+        assert any("openai" in c.name.lower() for c in components)
+
+    def test_files_without_annotation_unaffected(self, scanner, tmp_path):
+        """Normal files without any annotation continue to be scanned as before."""
+        f = tmp_path / "app.py"
+        f.write_text("import openai\nimport anthropic\n")
+        components = scanner.scan(tmp_path)
+        names_lower = [c.name.lower() for c in components]
+        assert any("openai" in n for n in names_lower)
+        assert any("anthropic" in n for n in names_lower)
+
+
 class TestIsModelPinned:
     def test_is_model_pinned_with_date(self, scanner):
         assert scanner._is_model_pinned("gpt-4-0314")
