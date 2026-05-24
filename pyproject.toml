@@ -85,7 +85,7 @@ callable-google = ["google-generativeai>=0.5.0,<2.0"]
 callable-bedrock = ["boto3>=1.26.0,<2.0"]
 callable-ollama = ["ollama>=0.3.0,<2.0"]
 callable-mistral = ["mistralai>=1.0.0,<3.0"]
-callable-cohere = ["cohere>=5.0.0,<7.0"]
+callable-cohere = ["cohere>=5.0.0,<8.0"]
 callable-all = [
     "ai-bom[callable-openai,callable-anthropic,callable-google,callable-bedrock,callable-ollama,callable-mistral,callable-cohere]",
 ]
